@@ -25,8 +25,11 @@ def put_text(img, text, loc="center", font_scale=1, thickness=1, color=(-1, -1, 
         textX = textsize[0]
         textY = textsize[1]
     elif loc == "bottomleft":
-        textX = textsize[0]
+        textX = img.shape[0] // 2
         textY = img.shape[0] - textsize[1]
+    elif loc == "bottom":
+        textX = (img.shape[1] - textsize[0]) // 2
+        textY = img.shape[0] - textsize[1] // 2
     # TODO: add all possible palcement options
     font_color = color
     cv2.putText(img, text, (textX, textY), font, font_scale, font_color, thickness=3)
