@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from skimage import measure
 from scipy.ndimage.measurements import center_of_mass
+from scipy.misc import imresize
 
 
 def calculate_centroids(labels, cca=False, background=0):
@@ -139,7 +140,7 @@ def remap_parts(part_map, remap_dict):
         an array of part labels (int) for each pixel location
     remap_dict : dict
         a dict where each key is an int giving the original part id and 
-        each pair is an int giving the new part id
+        each value is an int giving the new part id
 
     returns
     new_part_map : ndarray
@@ -263,6 +264,20 @@ def semantic_remap_dict2remap_dict(semantic_remap_dict, new_part_list):
 
 
 def compute_iou(pred, label):
+    """
+    compoute iou between predicted labels and labels
+
+    pred : ndarray of shape [H, W, N] and dtype int
+        array with predicted labels
+    label : ndarray of shape [H, W, N] and dtype int
+        array with ground truth labels
+
+    Returns
+    IOU : ndarray of shape [N]
+        array with IOUs
+    unique_labels : ndarray of shape [n]
+        array with unique labels in of GT label array
+    """
     unique_labels = np.unique(label)
     num_unique_labels = len(unique_labels)
 
@@ -277,6 +292,54 @@ def compute_iou(pred, label):
         U[index] = float(np.sum(np.logical_or(label_i, pred_i)))
 
     return I / U, unique_labels
+
+
+def compute_best_iou_remapping(pred, label):
+    """
+    given predicted labels, compute best possible remapping of predictions
+    to labels so that it maximizes each labels iou.
+    pred shape : ndarray of shape [batch, H, W] and dtype int where each item is a label map
+    label shape : ndarray of shape [batch, H, W] and dtype int where each item is a label map
+
+    returns : 
+    best_remappings: dict
+        a dictionary where each key is an int representing the old key and each value is an int representing
+        the new key
+
+    """
+    unique_labels = np.unique(label)
+    num_unique_labels = len(unique_labels)
+    unique_pred_labels = np.unique(pred)
+    best_remappings = {}
+
+    for index, pred_val in enumerate(unique_pred_labels):
+        pred_i = pred == pred_val
+        pred_i = np.expand_dims(pred_i, axis=-1)
+        label_i = np.stack([label == k for k in unique_labels], axis=-1)
+        N = np.sum(
+            np.sum(label_i, axis=(1, 2)) > 1.0, axis=0
+        )  # when part not in GT, then do not count it for normalization
+        N = np.reshape(N, (1, -1))
+        all_I = np.sum(np.logical_and(label_i, pred_i), axis=(1, 2))
+        all_U = np.sum(np.logical_or(label_i, pred_i), axis=(1, 2))
+
+        # if union is 0, writes -1 to IOU to prevent it beeing the maximum
+        iou = np.where(all_U > 0.0, all_I / all_U, np.ones_like(all_I) * -1.0)
+
+        best_iou_idx = np.argmax(np.sum(iou, axis=0) / N, axis=-1)
+        best_iou = iou[best_iou_idx]
+        best_label = unique_labels[best_iou_idx]
+        best_remappings[pred_val] = int(np.squeeze(best_label))
+    return best_remappings
+
+
+def resize_labels(labels, size):
+    label_list = np.split(labels, labels.shape[0], axis=0)
+    label_list = list(
+        map(lambda x: imresize(np.squeeze(x), size, interp="nearest"), label_list)
+    )
+    labels = np.stack(label_list, axis=0)
+    return labels
 
 
 PART_DICT_ID2STR = {
