@@ -265,7 +265,7 @@ def semantic_remap_dict2remap_dict(semantic_remap_dict, new_part_list):
 
 def compute_iou(pred, label):
     """
-    compoute iou between predicted labels and labels
+    compoute iou between predicted labels and labels. IOU is also called Jaccard Similarity although this is more form the NLP domain.
 
     pred : ndarray of shape [H, W, N] and dtype int
         array with predicted labels
@@ -334,12 +334,38 @@ def compute_best_iou_remapping(pred, label):
 
 
 def resize_labels(labels, size):
-    label_list = np.split(labels, labels.shape[0], axis=0)
-    label_list = list(
-        map(lambda x: imresize(np.squeeze(x), size, interp="nearest"), label_list)
-    )
-    labels = np.stack(label_list, axis=0)
-    return labels
+    """Reshape labels image to target size. 
+    
+    Parameters
+    ----------
+    labels : np.ndarray
+        [H, W] or [N, H, W] - shaped array where each pixel is an `int` giving a label id for the segmentation. In case of [N, H, W],
+        each slice along the first dimension is treated as an independent label image.
+    size : tuple of ints
+        Target shape as tuple of ints
+    
+    Returns
+    -------
+    reshaped_labels : np.ndarray
+        [size[0], size[1]] or [N, size[0], size[1]]-shaped array
+    
+    Raises
+    ------
+    ValueError
+        if labels does not have valid shape
+    """
+    # TODO: make this work for a single image
+    if len(labels.shape) == 2:
+        return imresize(labels, size, interp="nearest")
+    elif len(labels.shape) == 3:
+        label_list = np.split(labels, labels.shape[0], axis=0)
+        label_list = list(
+            map(lambda x: imresize(np.squeeze(x), size, interp="nearest"), label_list)
+        )
+        labels = np.stack(label_list, axis=0)
+        return labels
+    else:
+        raise ValueError("unsupported shape for labels : {}".format(labels.shape))
 
 
 PART_DICT_ID2STR = {
