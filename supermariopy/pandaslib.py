@@ -116,3 +116,43 @@ def unnest_dict(dict_, join_subkeys=True, subkey_sep="_"):
         )  # recurse into subdictionary
         new_dict.update(new_b)
     return new_dict
+
+
+def df_empty(columns, dtypes=None, index=None):
+    """create empty dataframe from column names and specified dtypes
+    
+    Parameters
+    ----------
+    columns : list
+        list of str specifying column names
+    dtypes : list of dtypes, optional
+        list of dtypes for each column
+    index : bool, optional
+        [description], by default None
+    
+    Returns
+    -------
+    df
+        empty pandas dataframe
+
+    Examples
+    --------
+        df = df_empty(['a', 'b'], dtypes=[np.int64, np.int64])
+        print(list(df.dtypes)) # int64, int64
+
+        df = df_empty(['a', 'b'], dtypes=None)
+        print(list(df.dtypes)) # float64, float64        
+
+    References
+    ----------
+        Shamelessly copied from https://stackoverflow.com/questions/36462257/create-empty-dataframe-in-pandas-specifying-column-types
+    """
+    if dtypes is None:
+        dtypes = [None] * len(columns)
+    has_consistent_lengths = len(columns) == len(dtypes)
+    if not has_consistent_lengths:
+        raise ValueError("columns and dtypes have to have same length")
+    df = pd.DataFrame(index=index)
+    for c, d in zip(columns, dtypes):
+        df[c] = pd.Series(dtype=d)
+    return df
