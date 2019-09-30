@@ -177,3 +177,27 @@ class Test_crf:
         segmentation_algorithm = SegmentationFromKeypoints(var)
         with pytest.warns(Warning):
             labels = segmentation_algorithm(img, keypoints)
+
+
+class Test_denseposelib:
+    @pytest.mark.parametrize(
+        "in_shape,out_shape", [((256, 256), (128, 128)), ((3, 256, 256), (3, 128, 128))]
+    )
+    def test_resize_labels(self, in_shape, out_shape):
+        from supermariopy.denseposelib import resize_labels
+
+        labels = np.random.randint(0, 10, in_shape)
+        resized = resize_labels(labels, out_shape[-2:])
+        assert resized.shape == out_shape
+
+    def test_compute_iou(self):
+        from supermariopy.denseposelib import compute_iou
+
+        A = np.ones((10, 10, 1), dtype=np.int)
+        B = np.ones((10, 10, 1), dtype=np.int)
+        B[:5, :5] = 0
+
+        iou, unique_labels = compute_iou(A, B)
+
+        assert (float(iou[unique_labels == 1])) == 0.75
+

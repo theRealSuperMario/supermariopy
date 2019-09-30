@@ -3,7 +3,8 @@ import cv2
 import numpy as np
 from skimage import measure
 from scipy.ndimage.measurements import center_of_mass
-from scipy.misc import imresize
+
+# from scipy.misc import imresize
 
 
 def calculate_centroids(labels, cca=False, background=0):
@@ -116,13 +117,13 @@ def filter_parts(part_map, included_parts):
     """
     Filter out only included part labels from part_map.
 
-    part_map : ndarray
+    part_map : np.ndarray
         an array of part labels (int) for each pixel location
     included_parts : list or array
-        array of ints specifying parts that should remain
+        array of dtype np.int specifying parts that should remain
 
     returns
-    new_part_map : ndarray
+    new_part_map : np.ndarray
         an array where only included parts are present.
     """
     new_part_map = np.zeros_like(part_map)
@@ -149,60 +150,60 @@ def remap_parts(part_map, remap_dict):
 
     Example:
 
-    from matplotlib import pylab as plt
-    import cv2
-    import numpy as np
+        from matplotlib import pylab as plt
+        import cv2
+        import numpy as np
 
-    image_paths = [
-        "front_IUV.png",
-        "behind_IUV.png",
-    ]
+        image_paths = [
+            "front_IUV.png",
+            "behind_IUV.png",
+        ]
 
-    IUV = list(map( cv2.imread, image_paths))
-    I = list(map(lambda x: x[:, :, 0], IUV))
-    I = I[0] # keep it simple
-    semantic_remap_dict = {
-        "arm" : ['left_upper_arm',
-                'right_upper_arm',
-                'left_upper_arm',
-                'right_upper_arm',
-                'left_lower_arm',
-                'right_lower_arm',
-                'left_lower_arm',
-                'right_lower_arm'
-                ],
-        "leg" : [
-            'back_upper_front_leg',
-            'back_upper_left_leg',
-            'right_upper_leg',
-            'left_upper_leg',
-            'back_right_lower_leg',
-            'back_left_lower_leg',
-            'right_lower_leg',
-            'left_lower_leg'
-        ],
-        'head': ['left_head', 'right_head'],
-        'hand': ['right_hand', 'left_hand'],
-        'chest': ['chest'],
-        'back' : ['back'],
-        'foot': ['left_foot', 'right_foot'],
-        'background' : ['background']
-    }
-    new_part_list = list(semantic_remap_dict.keys())
+        IUV = list(map( cv2.imread, image_paths))
+        I = list(map(lambda x: x[:, :, 0], IUV))
+        I = I[0] # keep it simple
+        semantic_remap_dict = {
+            "arm" : ['left_upper_arm',
+                    'right_upper_arm',
+                    'left_upper_arm',
+                    'right_upper_arm',
+                    'left_lower_arm',
+                    'right_lower_arm',
+                    'left_lower_arm',
+                    'right_lower_arm'
+                    ],
+            "leg" : [
+                'back_upper_front_leg',
+                'back_upper_left_leg',
+                'right_upper_leg',
+                'left_upper_leg',
+                'back_right_lower_leg',
+                'back_left_lower_leg',
+                'right_lower_leg',
+                'left_lower_leg'
+            ],
+            'head': ['left_head', 'right_head'],
+            'hand': ['right_hand', 'left_hand'],
+            'chest': ['chest'],
+            'back' : ['back'],
+            'foot': ['left_foot', 'right_foot'],
+            'background' : ['background']
+        }
+        new_part_list = list(semantic_remap_dict.keys())
 
-    remap_dict = {}
-    for i, new_label in enumerate(new_part_list):
-        old_keys = semantic_remap_dict[new_label]
-        remap_dict.update({denseposelib.PART_LIST.index(o) : i for o in old_keys})
+        remap_dict = {}
+        for i, new_label in enumerate(new_part_list):
+            old_keys = semantic_remap_dict[new_label]
+            remap_dict.update({denseposelib.PART_LIST.index(o) : i for o in old_keys})
 
-    print(remap_dict)
+        print(remap_dict)
 
-    new_I = denseposelib.remap_parts(I, remap_dict)
-    plt.imshow(new_I)
-    ax = plt.gca()
-    centroids, centroid_labels = denseposelib.calculate_centroids(new_I, cca=True)
-    texts = list(map(lambda x: new_part_list[x], centroid_labels))
-    denseposelib.plot_centroids(ax, centroids, texts)
+        new_I = denseposelib.remap_parts(I, remap_dict)
+        plt.imshow(new_I)
+        ax = plt.gca()
+        centroids, centroid_labels = denseposelib.calculate_centroids(new_I, cca=True)
+        texts = list(map(lambda x: new_part_list[x], centroid_labels))
+        denseposelib.plot_centroids(ax, centroids, texts)
     """
     new_part_map = np.zeros_like(part_map)
     for old_id, new_id in remap_dict.items():
@@ -308,11 +309,11 @@ def compute_best_iou_remapping(pred, label):
 
     """
     unique_labels = np.unique(label)
-    num_unique_labels = len(unique_labels)
+    # num_unique_labels = len(unique_labels)
     unique_pred_labels = np.unique(pred)
     best_remappings = {}
 
-    for index, pred_val in enumerate(unique_pred_labels):
+    for pred_val in unique_pred_labels:
         pred_i = pred == pred_val
         pred_i = np.expand_dims(pred_i, axis=-1)
         label_i = np.stack([label == k for k in unique_labels], axis=-1)
@@ -327,7 +328,6 @@ def compute_best_iou_remapping(pred, label):
         iou = np.where(all_U > 0.0, all_I / all_U, np.ones_like(all_I) * -1.0)
 
         best_iou_idx = np.argmax(np.sum(iou, axis=0) / N, axis=-1)
-        best_iou = iou[best_iou_idx]
         best_label = unique_labels[best_iou_idx]
         best_remappings[pred_val] = int(np.squeeze(best_label))
     return best_remappings
@@ -356,11 +356,16 @@ def resize_labels(labels, size):
     """
     # TODO: make this work for a single image
     if len(labels.shape) == 2:
-        return imresize(labels, size, interp="nearest")
+        return cv2.resize(labels, size, interpolation=cv2.INTER_NEAREST)
     elif len(labels.shape) == 3:
         label_list = np.split(labels, labels.shape[0], axis=0)
         label_list = list(
-            map(lambda x: imresize(np.squeeze(x), size, interp="nearest"), label_list)
+            map(
+                lambda x: cv2.resize(
+                    np.squeeze(x), size, interpolation=cv2.INTER_NEAREST
+                ),
+                label_list,
+            )
         )
         labels = np.stack(label_list, axis=0)
         return labels
