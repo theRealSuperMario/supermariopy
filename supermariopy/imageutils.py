@@ -8,7 +8,7 @@ from scipy.stats import multivariate_normal
 class DimensionError(ValueError):
     def __init__(self, var, var_name, target_dimension):
         msg = "Variable '{}' has to have {} dimensions but has {} dimensions".format(
-            var_name, target_dimension, len(var)
+            var_name, target_dimension, len(var.shape)
         )
         super(DimensionError, self).__init__(msg)
 
@@ -19,6 +19,31 @@ class ShapeError(ValueError):
             var_name, target_shape, var.shape
         )
         super(ShapeError, self).__init__(msg)
+
+
+class RangeError(ValueError):
+    def __init__(self, var, var_name, target_range):
+        found_range = [var.min(), var.max()]
+        msg = "Variable '{}' has to be in value range {} but has range {}".format(
+            var_name, target_range, found_range
+        )
+        super(RangeError, self).__init__(msg)
+
+
+class LengthError(ValueError):
+    def __init__(self, var, var_name, target_len):
+        msg = "Variable '{}' has to have length {} but has length {}".format(
+            var_name, target_len, len(var)
+        )
+        super(LengthError, self).__init__(msg)
+
+
+def is_in_range(array: np.ndarray, target_range: Iterable) -> bool:
+    if len(target_range) != 2:
+        raise LengthError(target_range, "target_range", 2)
+    if target_range[0] > target_range[1]:
+        raise ValueError("target_range[0] has to be smaller than target_range[1]")
+    return array.min() >= target_range[0] and array.max() <= target_range[1]
 
 
 def put_text(
@@ -281,6 +306,8 @@ def keypoints_to_heatmaps(
         variance of blobs to create around keypoint. relative to keypoints coordinates range (-1, 1)
     outputs : [img_shape[0], img_shape[1], kp]
     """
+    if not is_in_range(keypoints, [-1, 1]):
+        raise RangeError(keypoints, "keypoints", [-1, 1])
     if len(keypoints.shape) == 2:
         pass
     elif len(keypoints.shape) > 2:
@@ -308,6 +335,8 @@ def _keypoint_to_heatmap(
         shaped [2]. Keypoints coordinates be in range (-1, 1)
     outputs : [img_shape[0], img_shape[1]]
     """
+    if not is_in_range(keypoint, [-1, 1]):
+        raise RangeError(keypoint, "keypoints", [-1, 1])
     keypoint_shape = keypoint.shape
     if len(keypoint_shape) != 1:
         raise DimensionError(keypoint, "keypoint", target_dimension=1)

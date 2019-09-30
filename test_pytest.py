@@ -69,6 +69,41 @@ class Test_Imageutils:
         ax.imshow(np.squeeze(img_marked))
         return fig
 
+    def test_keypoints_to_heatmaps(self):
+        from supermariopy.imageutils import keypoints_to_heatmaps, RangeError
+
+        keypoints = np.stack([np.linspace(-1, 1, 10), np.linspace(-1, 1, 10)], axis=1)
+        heatmaps = keypoints_to_heatmaps((512, 512), keypoints)
+        assert heatmaps.shape == (512, 512, 10)
+
+        keypoints = np.stack([np.arange(10), np.arange(10)], axis=1)
+        with pytest.raises(RangeError):
+            heatmaps = keypoints_to_heatmaps((512, 512), keypoints)
+
+    def test_is_in_range(self):
+        from supermariopy.imageutils import is_in_range, LengthError
+
+        a = np.array([0, 1])
+        assert is_in_range(a, [0, 1])
+        assert is_in_range(a, [-1, 1])
+        assert not is_in_range(a, [0.5, 1])
+
+        with pytest.raises(LengthError):
+            is_in_range(a, [0, 1, 2])
+
+        with pytest.raises(ValueError):
+            is_in_range(a, [1, 0])
+
+    def test_convert_range(self):
+        from supermariopy.imageutils import convert_range
+
+        a = np.array([0, 1])
+        with pytest.raises(ValueError):
+            convert_range(a, [1, 0], [0, 1])
+
+        with pytest.raises(ValueError):
+            convert_range(a, [0, 1], [1, 0])
+
     # def test_dimension_error(self):
     #     import numpy as np
     #     from supermariopy.imageutils import DimensionError
@@ -91,3 +126,49 @@ class Test_Imageutils:
     #     with pytest.raises(DimensionError):
     # raise DimensionError(a.reshape((1, 1, 10)), "a", 3)
 
+
+class Test_crf:
+    @pytest.mark.mpl_image_compare
+    def test_segmentationFromKeypoints(self):
+        from supermariopy.crf import SegmentationFromKeypoints
+        from supermariopy import imageutils
+        from skimage import data
+
+        n_keypoints = 10
+        var = 0.05
+        keypoints = np.stack(
+            [np.linspace(-1, 1, n_keypoints), np.linspace(-1, 1, n_keypoints)], axis=1
+        )
+
+        img = data.astronaut()
+        segmentation_algorithm = SegmentationFromKeypoints(var)
+        labels = segmentation_algorithm(img, keypoints)
+        labels_rgb = imageutils.make_colors(n_keypoints + 1)[labels]
+        heatmaps = imageutils.keypoints_to_heatmaps(img.shape[:2], keypoints, var)
+        heatmaps_rgb = imageutils.colorize_heatmaps(
+            heatmaps[np.newaxis, ...], imageutils.make_colors(n_keypoints)
+        )
+        fig, axes = plt.subplots(1, 2, figsize=(8, 4))
+        axes[0].imshow(labels_rgb)
+        axes[0].set_axis_off()
+
+        axes[1].imshow(np.squeeze(heatmaps_rgb))
+        axes[1].set_axis_off()
+        return fig
+
+    def test_segmentationFromKeypoints_lowRangeError(self):
+        from supermariopy.crf import SegmentationFromKeypoints
+        from supermariopy import imageutils
+        from skimage import data
+
+        n_keypoints = 10
+        var = 0.05
+        keypoints = np.stack(
+            [np.linspace(-1, 1, n_keypoints), np.linspace(-1, 1, n_keypoints)], axis=1
+        )
+
+        img = data.astronaut()
+        img = imageutils.convert_range(img, [0, 255], [0, 1])
+        segmentation_algorithm = SegmentationFromKeypoints(var)
+        with pytest.warns(Warning):
+            labels = segmentation_algorithm(img, keypoints)
