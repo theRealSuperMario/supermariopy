@@ -39,13 +39,18 @@ class Test_Imageutils:
     @pytest.mark.mpl_image_compare
     def test_draw_keypoint_markers(self):
         from skimage import data
-        from supermariopy.imageutils import draw_keypoint_markers
+        from supermariopy.imageutils import draw_keypoint_markers, convert_range
         from matplotlib import pyplot as plt
 
         astronaut = data.astronaut()
+        astronaut = convert_range(astronaut, [0, 255], [0, 1])
         keypoints = np.stack([np.linspace(-1, 1, 10), np.linspace(-1, 1, 10)], axis=1)
         img_marked = draw_keypoint_markers(
-            astronaut, keypoints, font_scale=2, thickness=3
+            astronaut,
+            keypoints,
+            font_scale=2,
+            thickness=3,
+            marker_list=["1", "2", "3", "x", "o", "v"],
         )
         fig, ax = plt.subplots(1, 1, figsize=(6, 6))
         ax.imshow(img_marked)

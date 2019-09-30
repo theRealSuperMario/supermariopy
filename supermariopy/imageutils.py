@@ -133,6 +133,7 @@ def draw_keypoint_markers(
     font_scale: int = 1,
     thickness: int = 2,
     font=cv2.FONT_HERSHEY_SIMPLEX,
+    marker_list=["o", "v", "x", "+", "<", "-", ">", "c"],
 ) -> np.ndarray:
     """ Draw keypoints on image with markers
     
@@ -158,15 +159,14 @@ def draw_keypoint_markers(
         img_marked = draw_keypoint_markers(astronaut, keypoints, font_scale=2, thickness=3)
         plt.imshow(img_marked)
     """
-    # TODO: check image range
     if not is_in_range(img, [0, 1]):
         raise RangeError(img, "img", [0, 1])
     if img.shape[0] != img.shape[1]:
         raise ValueError("only square images are supported currently")
-    marker_list = ["o", "v", "x", "+", "<", "-", ">", "c"]
+
     img_marked = img.copy()
     keypoints = convert_range(keypoints, [-1, 1], [0, img.shape[0] - 1])
-    colors = make_colors(keypoints.shape[0], bytes=False, cmap=plt.cm.Set1)
+    colors = make_colors(keypoints.shape[0], bytes=False, cmap=plt.cm.inferno)
     for i, kp in enumerate(keypoints):
         text = marker_list[i % len(marker_list)]
         (label_width, label_height), baseline = cv2.getTextSize(
