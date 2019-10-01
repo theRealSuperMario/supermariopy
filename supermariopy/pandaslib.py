@@ -1,4 +1,5 @@
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 
 def listify_dict(dict_):
@@ -156,3 +157,32 @@ def df_empty(columns, dtypes=None, index=None):
     for c, d in zip(columns, dtypes):
         df[c] = pd.Series(dtype=d)
     return df
+
+
+def instance_level_split(df, column_name, random_seed=None, test_size=0.2):
+    """split rows of dataframe on instance level (grouped by colum_name)
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        dataframe to split
+    column_name : str
+        column name to group by
+    random_seed : int, optional
+        random state for splitting, by default None
+    test_size : int or float, optional
+        test_size in fraction (float within [0, 1]) or absolute value (int)
+    Returns
+    -------
+    pd.DataFrame
+        train_groups
+    pd.DataFrame
+        test_groups
+    """
+    groups = [df for _, df in df.groupby(column_name)]
+    train_groups, test_groups = train_test_split(
+        groups, test_size=test_size, random_state=random_seed
+    )
+    train_groups = pd.concat(train_groups)
+    test_groups = pd.concat(test_groups)
+    return train_groups, test_groups

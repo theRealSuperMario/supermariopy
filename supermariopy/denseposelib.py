@@ -3,6 +3,9 @@ import cv2
 import numpy as np
 from skimage import measure
 from scipy.ndimage.measurements import center_of_mass
+from typing import *
+import pandas as pd
+from supermariopy.pandaslib import df_empty
 
 # from scipy.misc import imresize
 
@@ -268,9 +271,9 @@ def compute_iou(pred, label):
     """
     compoute iou between predicted labels and labels. IOU is also called Jaccard Similarity although this is more form the NLP domain.
 
-    pred : ndarray of shape [H, W, N] and dtype int
+    pred : ndarray of shape [H, W] and dtype int
         array with predicted labels
-    label : ndarray of shape [H, W, N] and dtype int
+    label : ndarray of shape [H, W] and dtype int
         array with ground truth labels
 
     Returns
@@ -371,6 +374,134 @@ def resize_labels(labels, size):
         return labels
     else:
         raise ValueError("unsupported shape for labels : {}".format(labels.shape))
+
+
+def calculate_iou_df(
+    predicted: np.ndarray, target: np.ndarray, label_names: Iterable[str]
+):
+    """Calculate IOUs for each (predicted, target) pair in tensor `predicted` and `target`
+    and each part in label_names.
+
+    Each IOU measurement is written as a line in a dataframe.
+    
+    If a label is not present in `target`, the IOU is set to -1.
+
+    Parameters
+    ----------
+    inferred : np.ndarray
+        A stack of N inferred labels shaped [N, H, W]
+    truth : np.ndarray
+        A stack of N target labels shaped [N, H, W]
+    label_names : list of `str`
+        list of semantic names for each label value
+    
+    Returns
+    -------
+    pd.DataFrame
+        dataframe with columns [ "batch_idx", label_names[0], ..., label_names[-1] ]
+
+    Examples
+    --------
+
+        A = np.ones((10, 10), dtype=np.int)
+        B = np.ones((10, 10), dtype=np.int)
+        B[:5, :5] = 0
+        B[5:, 5:] = 1
+        B[5:, :5] = 2
+
+        predicted = np.stack([A] * 10, axis=0)
+        target = np.stack([B] * 10, axis=0)
+        label_names = ["zeros", "ones", "twos", "threes"]
+        df = calculate_iou_df(predicted, target, label_names)
+        print(df)
+        >>> batch_idx  zeros  ones  twos  threes
+        >>>  0.0    0.0   0.5   0.0    -1.0
+        >>>  1.0    0.0   0.5   0.0    -1.0
+        # ...
+    """
+
+    # df = pd.DataFrame(columns=["batch_idx"] + label_names)
+    column_names = ["batch_idx"] + label_names
+    dtypes = [np.int32] + [np.float32] * len(label_names)
+    df = df_empty(column_names, dtypes)
+    for batch_idx in range(len(predicted)):
+        current_inferred = predicted[batch_idx]
+        current_gt = target[batch_idx]
+        iou, iou_labels = compute_iou(current_inferred, current_gt)
+        df_update = {p: -1.0 for p in label_names}
+        df_update.update(
+            {
+                p: float(np.squeeze(iou[pi == iou_labels]))
+                for pi, p in enumerate(label_names)
+                if pi in iou_labels
+            }
+        )
+        df_update.update({"batch_idx": batch_idx})
+        df = df.append(df_update, ignore_index=True)
+    return df
+
+
+def calculate_overall_iou_from_df(
+    df: pd.DataFrame,
+    exclude_columns: Iterable[str] = ["global_step", "batch_idx", "background"],
+) -> pd.DataFrame:
+    """calculate overall IOU from a dataframe with IOU values.
+
+    # TODO: the dataframe has to have the following layout
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        dataframe to calculate the IOU of
+    exclude_columns: Iterable[str]
+        column names to NOT take the mean over
+
+
+    Examples
+    --------
+
+        A = np.ones((10, 10), dtype=np.int)
+        B = np.ones((10, 10), dtype=np.int)
+        B[:5, :5] = 0
+        B[5:, 5:] = 1
+        B[5:, :5] = 2
+
+        predicted = np.stack([A] * 10, axis=0)
+        target = np.stack([B] * 10, axis=0)
+        label_names = ["zeros", "ones", "twos", "threes"]
+        df = calculate_iou_df(predicted, target, label_names)
+        df_mean = calculate_overall_iou_from_df(df)
+
+        print(df_mean)
+        >>> batch_idx  zeros  ones  twos  threes   overall
+        >>> 4.5    0.0   0.5   0.0     NaN  0.166667
+    
+    """
+
+    df_mean = df[df != -1].mean().to_frame().transpose()
+    df_mean["overall"] = df_mean[
+        filter(lambda x: x not in exclude_columns, df.columns)
+    ].mean(axis=1)
+    return df_mean
+
+
+def get_best_segmentation(
+    groundtruth_segmentation, inferred_segmentation, dp_remap_dict
+):
+    """
+    # TODO: document this
+    [N, H, W], [N, H, W] 
+    
+    --> returns [N, H, W], [N, H, W]
+    """
+    remapped_gt_segmentation = remap_parts(groundtruth_segmentation, dp_remap_dict)
+
+    best_remapping = compute_best_iou_remapping(
+        inferred_segmentation, remapped_gt_segmentation
+    )
+    remapped_inferred = remap_parts(inferred_segmentation, best_remapping)
+
+    return remapped_gt_segmentation, remapped_inferred
 
 
 PART_DICT_ID2STR = {
