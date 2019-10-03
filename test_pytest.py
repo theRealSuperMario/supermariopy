@@ -250,3 +250,52 @@ class Test_denseposelib:
 
         print(df_mean)
         np.testing.assert_almost_equal(df_mean["overall"], np.array([0.5 / 3]))
+
+
+class Test_MPL:
+    @pytest.mark.mpl_image_compare
+    def test_add_colorbars_to_axes(self):
+        from supermariopy.mpl import add_colorbars_to_axes
+        from matplotlib import pyplot as plt
+
+        plt.subplot(121)
+        plt.imshow(np.arange(100).reshape((10, 10)))
+        plt.subplot(122)
+        plt.imshow(np.arange(100).reshape((10, 10)))
+        add_colorbars_to_axes()
+        return plt.gcf()
+
+    @pytest.mark.mpl_image_compare
+    def test_set_all_axis_off(self):
+        from supermariopy.mpl import set_all_axis_off
+        from matplotlib import pyplot as plt
+
+        plt.subplot(121)
+        plt.imshow(np.arange(100).reshape((10, 10)))
+        plt.subplot(122)
+        plt.imshow(np.arange(100).reshape((10, 10)))
+        set_all_axis_off()
+        return plt.gcf()
+
+    @pytest.mark.mpl_image_compare
+    def test_change_linewidth(self):
+        from supermariopy.mpl import change_linewidth
+        from matplotlib import pyplot as plt
+
+        fig, ax = plt.subplots(1, 1)
+        x = np.arange(10)
+        y = np.arange(10)
+        ax.plot(x, y, x + 1, y, x - 1, y)
+        change_linewidth(ax, 3)
+        return plt.gcf()
+
+    @pytest.mark.mpl_image_compare
+    def test_change_fontsize(self):
+        from supermariopy.mpl import change_fontsize
+        from matplotlib import pyplot as plt
+
+        fig, ax = plt.subplots(1, 1)
+        ax.plot(np.arange(10), np.arange(10))
+        change_fontsize(ax, 5)
+        return plt.gcf()
+
