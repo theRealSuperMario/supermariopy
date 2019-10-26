@@ -79,10 +79,10 @@ def main(logdir_or_logfile: str, write_pkl: bool, write_csv: bool, out_dir: str)
     Example usage:
 
     # create csv file from all tensorflow logs in provided directory (.) and write it to folder "./converted"
-    tflogs2pandas.py . --csv --no-pkl --o converted
+    tflogs2pandas.py . --write-csv --no-write-pkl --o converted
 
     # creaste csv file from tensorflow logfile only and write into and write it to folder "./converted"
-    tflogs2pandas.py tflog.hostname.12345 --csv --no-pkl --o converted
+    tflogs2pandas.py tflog.hostname.12345 --write-csv --no-write-pkl --o converted
     """
     pp = pprint.PrettyPrinter(indent=4)
     if os.path.isdir(logdir_or_logfile):
