@@ -3,6 +3,8 @@ import numpy as np
 from typing import *
 from matplotlib import pyplot as plt
 from scipy.stats import multivariate_normal
+import subprocess
+import math
 
 
 class DimensionError(ValueError):
@@ -104,10 +106,16 @@ def put_text(
 
 
 def make_colors(
-    n_classes: int, cmap: Callable = plt.cm.inferno, bytes: bool = False
+    n_classes: int,
+    cmap: Callable = plt.cm.inferno,
+    bytes: bool = False,
+    with_background=False,
+    background_color=np.array([1, 1, 1]),
+    background_id=0,
 ) -> np.ndarray:
     """make a color array using the specified colormap for `n_classes` classes
 
+    # TODO: test new background functionality
     Parameters
     ----------
     n_classes: int
@@ -124,13 +132,15 @@ def make_colors(
 
     """
     colors = cmap(np.linspace(0, 1, n_classes), alpha=False, bytes=bytes)[:, :3]
+    if with_background:
+        colors = np.insert(colors, background_id, background_color, axis=0)
     return colors
 
 
 def draw_keypoint_markers(
     img: np.ndarray,
     keypoints: np.ndarray,
-    font_scale: int = 1,
+    font_scale: float = 0.5,
     thickness: int = 2,
     font=cv2.FONT_HERSHEY_SIMPLEX,
     marker_list=["o", "v", "x", "+", "<", "-", ">", "c"],
@@ -354,3 +364,87 @@ def _keypoint_to_heatmap(
     z /= z.max()
     return z
 
+
+def tile(X, rows, cols):
+    """Tile images for display.
+    
+    Parameters
+    ----------
+    X : np.ndarray
+        tensor of images shaped [N, H, W, C]. Images have to be in range [-1, 1]
+    rows : int
+        number of rows for final canvas
+    cols : int
+        number of rows for final canvas
+    
+    Returns
+    -------
+    np.ndarray
+        canvas with images as grid
+    """
+    tiling = np.zeros((rows * X.shape[1], cols * X.shape[2], X.shape[3]), dtype=X.dtype)
+    for i in range(rows):
+        for j in range(cols):
+            idx = i * cols + j
+            if idx < X.shape[0]:
+                img = X[idx, ...]
+                tiling[
+                    i * X.shape[1] : (i + 1) * X.shape[1],
+                    j * X.shape[2] : (j + 1) * X.shape[2],
+                    :,
+                ] = img
+    return tiling
+
+
+def batch_to_canvas(X, cols=None):
+    """convert batch of images to canvas
+    
+    Parameters
+    ----------
+    X : np.ndarray
+        tensor of images shaped [N, H, W, C]. Images have to be in range [-1, 1]
+    cols : int, optional
+        number of columns for the final canvas, by default None
+    
+    Returns
+    -------
+    np.ndarray
+        canvas with images as grid
+    """
+    if len(X.shape) == 5:
+        # tile
+        oldX = np.array(X)
+        n_tiles = X.shape[3]
+        side = math.ceil(math.sqrt(n_tiles))
+        X = np.zeros(
+            (oldX.shape[0], oldX.shape[1] * side, oldX.shape[2] * side, oldX.shape[4]),
+            dtype=oldX.dtype,
+        )
+        # cropped images
+        for i in range(oldX.shape[0]):
+            inx = oldX[i]
+            inx = np.transpose(inx, [2, 0, 1, 3])
+            X[i] = tile(inx, side, side)
+    n_channels = X.shape[3]
+    if n_channels > 4:
+        X = X[:, :, :, :3]
+    if n_channels == 1:
+        X = np.tile(X, [1, 1, 1, 3])
+    rc = math.sqrt(X.shape[0])
+    if cols is None:
+        rows = cols = math.ceil(rc)
+    else:
+        cols = max(1, cols)
+        rows = math.ceil(X.shape[0] / cols)
+    canvas = tile(X, rows, cols)
+    return canvas
+
+
+def vstack_paths(paths, out_path):
+    cmd = ["convert", "-append"] + paths + [out_path]
+    subprocess.call(cmd)
+
+
+def hstack_paths(paths, out_path):
+    cmd = ["convert", "+append"] + paths + [out_path]
+    subprocess.call(cmd)

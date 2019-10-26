@@ -3,24 +3,47 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import math
 from typing import *
+import seaborn as sns
+
+# import colorcet as cc
+# https://colorcet.pyviz.org/user_guide/Categorical.html
+
+# TODO rename module to something like : plotting, matborn (seaborn + matplotlib)
+
+
+def set_style():
+    plt.style.use("seaborn-whitegrid")
+
+
+NB_RC_PARAMS = {"figure.figsize": [5, 5], "figure.dpi": 220, "figure.autolayout": True}
+TIKZ_RC_PARAMS = {
+    "pgf.rcfonts": False,
+    "figure.figsize": [5, 5],
+    "figure.dpi": 220,
+    "figure.autolayout": True,
+}
+
+colors1 = np.array(sns.light_palette("navy", reverse=False, n_colors=10 + 1))[:, :3]
+colors2 = np.array(sns.light_palette("red", reverse=False, n_colors=10 + 1))[:, :3]
+colors3 = np.array(sns.light_palette("orange", reverse=False, n_colors=10 + 1))[:, :3]
+colors4 = np.array(sns.light_palette("black", reverse=False, n_colors=10 + 1))[:, :3]
 
 
 def imageStack_2_subplots(image_stack, axis=0):
     """utility function to plot a stack of images into a grid of subplots
 
-    # TODO: example
     
     Parameters
     ----------
-    image_stack : [type]
-        [description]
+    image_stack : np.ndarray
+        stack of images [N, H, W, C]
     axis : int, optional
-        [description], by default 0
+        axis of image_stack along which to make subplots, by default 0
     
     Returns
     -------
-    [type]
-        [description]
+    fig
+    axes
     """
     image_stack = np.rollaxis(image_stack, axis)
     N_subplots = image_stack.shape[0]
@@ -33,7 +56,9 @@ def imageStack_2_subplots(image_stack, axis=0):
     return fig, axes
 
 
-def add_colorbars_to_axes(axes=None, loc="right", size="5%", pad=0.05) -> None:
+def add_colorbars_to_axes(
+    axes=None, loc="right", size="5%", pad=0.05, **kwargs
+) -> None:
     """add colorbars to each axis in the current figures list of axes
     
     Parameters
@@ -61,10 +86,13 @@ def add_colorbars_to_axes(axes=None, loc="right", size="5%", pad=0.05) -> None:
 
     if axes is None:
         axes = plt.gcf().get_axes()
+    cbars = []
     for ax in axes:
         divider = make_axes_locatable(ax)
         cax = divider.append_axes(loc, size=size, pad=pad)
-        plt.colorbar(ax.images[0], cax=cax)
+        cbar = plt.colorbar(ax.images[0], cax=cax, **kwargs)
+        cbars.append(cbar)
+    return cbars
 
 
 # TODO: listmap: shortcut for list(map(f, args))
@@ -94,6 +122,12 @@ def set_all_axis_off(axes: List = None) -> None:
         axes = plt.gcf().get_axes()
     for ax in axes:
         ax.set_axis_off()
+
+
+def set_all_fontsize(axes: List = None, fs=3):
+    if axes is None:
+        axes = plt.gcf().get_axes()
+    map(lambda x: change_fontsize(x, fs), axes)
 
 
 def change_fontsize(ax, fs):
