@@ -87,14 +87,16 @@ def unnest_dict(dict_, join_subkeys=True, subkey_sep="_"):
 
     Examples
     --------
-    dict_ = {1 : 2, 3 : {4 : 5, 6 : 7}}
-    dict_["test"] = dict_.copy()
-    new_dict = unnest_dict(dict_)
-    dict_, new_dict
-    # create dataframe from old dict results in dict becoming a value in the table
-    df1 = pd.DataFrame(dict_)
-    # creating dataframe from new dict results a nice tabular dataframe
-    df = pd.DataFrame(listify_dict(new_dict))
+        dict_ = {1 : 2, 3 : {4 : 5, 6 : 7}}
+        dict_["test"] = dict_.copy()
+        new_dict = unnest_dict(dict_)
+        dict_, new_dict
+
+        # create dataframe from old dict results in dict becoming a value in the table
+        df1 = pd.DataFrame(dict_)
+        
+        # creating dataframe from new dict results a nice tabular dataframe
+        df = pd.DataFrame(listify_dict(new_dict))
     """
 
     new_dict = {}
