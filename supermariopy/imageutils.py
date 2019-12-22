@@ -91,15 +91,20 @@ def put_text(
         textX = (img.shape[1] - textsize[0]) // 2
         textY = textsize[1]
     elif loc == "topleft":
-        textX = textsize[0]
+        textX = 0
+        textY = textsize[1]
+    elif loc == "topright":
+        textX = img.shape[1] - textsize[0]
         textY = textsize[1]
     elif loc == "bottomleft":
-        textX = img.shape[0] // 2
-        textY = img.shape[0] - textsize[1]
+        textX = 0
+        textY = img.shape[0]
+    elif loc == "bottomright":
+        textX = img.shape[1] - textsize[0]
+        textY = img.shape[0]
     elif loc == "bottom":
         textX = (img.shape[1] - textsize[0]) // 2
-        textY = img.shape[0] - textsize[1] // 2
-    # TODO: add all possible palcement options
+        textY = img.shape[0]
     font_color = color
     cv2.putText(img, text, (textX, textY), font, font_scale, font_color, thickness=3)
     return img
@@ -269,42 +274,6 @@ def colorize_heatmaps(heatmaps: np.ndarray, colors: np.ndarray) -> np.ndarray:
     )  # [N, H, W, C, 3]
     heatmaps_colorized = np.sum(heatmaps_colorized, axis=3)
     return heatmaps_colorized
-
-
-def np_map_fn(func: Callable, data: Tuple) -> Tuple:
-    """map func along axis 0 of each item in data.
-
-    # TODO: fails when tuple has length 1
-
-    Similar to tf.map_fn
-    
-    Parameters
-    ----------
-    func : Callab
-        function to map to the items in data
-    data : Tuple[np.ndarray]
-        
-    Returns
-    -------
-    Tuple[np.ndarray]
-        function `func` applied to each element in `data`
-
-    Examples
-    --------
-        data = (np.arange(10).reshape(10, 1), np.arange(10)[::-1].reshape(10, 1))
-        output = np_map_fn(lambda x: (x[0]**2, x[1]**2), data)
-        output[0].squeeze()
-        >>> array([ 0,  1,  4,  9, 16, 25, 36, 49, 64, 81])
-
-        output = np_map_fn(lambda x: (x[0]**2, x[1]**2), data)
-        output[0].shape
-        >>> (10, 1)
-    """
-    generator = zip(*map(lambda x: [x[i, ...] for i in range(x.shape[0])], data))
-    # (data[0][0], data[0][1], ...), (data[1][0], data[1][1], ...), ...
-    outputs = map(func, generator)
-    outputs = list(map(np.stack, zip(*outputs)))
-    return outputs
 
 
 def keypoints_to_heatmaps(

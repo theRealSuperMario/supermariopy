@@ -15,6 +15,30 @@ class Test_Imageutils:
         ax.imshow(annotated)
         return fig
 
+    @pytest.mark.mpl_image_compare
+    def test_put_text_at_all_locations(self):
+        from skimage import data
+        from supermariopy.imageutils import put_text
+        from matplotlib import pyplot as plt
+
+        astronaut = data.astronaut()
+        locs = [
+            "center",
+            "topleft",
+            "topright",
+            "top",
+            "bottomleft",
+            "bottomright",
+            "bottom",
+        ]
+        fig, axes = plt.subplots(1, len(locs), figsize=(6 * len(locs), 6))
+        for ax, loc in zip(axes.ravel(), locs):
+            annotated = put_text(
+                astronaut.copy(), "hi", loc=loc, font_scale=5, color=(255, 255, 255)
+            )
+            ax.imshow(annotated)
+        return fig
+
     def test_make_colors_01(self):
         from supermariopy.imageutils import make_colors
         from matplotlib import pyplot as plt
