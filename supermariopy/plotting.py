@@ -265,8 +265,8 @@ def smooth(scalars, weight):
     
     Returns
     -------
-    np.ndarray
-        [description]
+    np.array
+        smoothed array
     """
     if weight <= 0.0:  # no smoothing
         return scalars
@@ -294,8 +294,8 @@ def ewma(x, alpha):
 
     Returns:
     --------
-    ewma: numpy array
-          the exponentially weighted moving average
+    np.array
+        the exponentially weighted moving average
     """
     # Coerce x to an array
     if alpha <= 0.0:
