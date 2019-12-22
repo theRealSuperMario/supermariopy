@@ -15,18 +15,25 @@ def set_style():
     plt.style.use("seaborn-whitegrid")
 
 
-NB_RC_PARAMS = {"figure.figsize": [5, 5], "figure.dpi": 220, "figure.autolayout": True}
+NB_RC_PARAMS = {"figure.figsize": [5, 3], "figure.dpi": 220, "figure.autolayout": True}
 TIKZ_RC_PARAMS = {
     "pgf.rcfonts": False,
-    "figure.figsize": [5, 5],
+    "figure.figsize": [5, 3],
     "figure.dpi": 220,
     "figure.autolayout": True,
+    "lines.linewidth": 2,
 }
 
 colors1 = np.array(sns.light_palette("navy", reverse=False, n_colors=10 + 1))[:, :3]
 colors2 = np.array(sns.light_palette("red", reverse=False, n_colors=10 + 1))[:, :3]
 colors3 = np.array(sns.light_palette("orange", reverse=False, n_colors=10 + 1))[:, :3]
 colors4 = np.array(sns.light_palette("black", reverse=False, n_colors=10 + 1))[:, :3]
+
+# TODO: define more color palettes
+# TODO: implement some of these
+# https://sk1project.net/palettes/
+
+COLOR_PALETTE_4 = np.array(sns.color_palette("bright", 4))[:, :3]
 
 
 def imageStack_2_subplots(image_stack, axis=0):
@@ -194,3 +201,68 @@ def change_linewidth(ax, lw=3):
     for item in ax.lines:
         item.set_linewidth(lw)
     return ax
+
+
+def smooth(scalars, weight):
+    """Smooth scalar array using some weight between [0, 1]. This is the tensorboard implementation
+    
+    For comparison with @ewma, see https://github.com/theRealSuperMario/notebook_collection
+
+    Parameters
+    ----------
+    scalars : np.array
+        array of scalars
+    weight : float between 0, 1
+        amount of smoothing
+    
+    Returns
+    -------
+    np.ndarray
+        [description]
+    """
+    if weight <= 0.0:  # no smoothing
+        return scalars
+    last = scalars[0]  # First value in the plot (first timestep)
+    smoothed = list()
+    for point in scalars:
+        smoothed_val = last * weight + (1 - weight) * point  # Calculate smoothed value
+        smoothed.append(smoothed_val)  # Save it
+        last = smoothed_val  # Anchor the last smoothed value
+
+    return smoothed
+
+
+def ewma(x, alpha):
+    """
+    copied from https://stackoverflow.com/questions/42869495/numpy-version-of-exponential-weighted-moving-average-equivalent-to-pandas-ewm
+    Returns the exponentially weighted moving average of x.
+
+    For comparison with @smooth, see https://github.com/theRealSuperMario/notebook_collection
+
+    Parameters:
+    -----------
+    x : array-like
+    alpha : float {0 <= alpha <= 1}
+
+    Returns:
+    --------
+    ewma: numpy array
+          the exponentially weighted moving average
+    """
+    # Coerce x to an array
+    if alpha <= 0.0:
+        return x
+    x = np.array(x)
+    n = x.size
+
+    # Create an initial weight matrix of (1-alpha), and a matrix of powers
+    # to raise the weights by
+    w0 = np.ones(shape=(n, n)) * (alpha)
+    p = np.vstack([np.arange(i, i - n, -1) for i in range(n)])
+
+    # Create the weight matrix
+    w = np.tril(w0 ** p, 0)
+
+    # Calculate the ewma
+    return np.dot(w, x[:: np.newaxis]) / w.sum(axis=1)
+
