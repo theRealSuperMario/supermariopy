@@ -17,3 +17,15 @@ py.test --mpl --mpl-baseline-path=baseline
 
 py.test --mpl-generate-path=baseline
 ```
+
+
+# Suggested Imports
+
+```python
+from supermariopy import numpyutils as npu
+from supermariopy import tfutils as tfu
+```
+
+
+# TODO
+ - [ ] Use type hints ore do not use them at all. right now, it is very mixed.
