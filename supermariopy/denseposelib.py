@@ -10,6 +10,27 @@ from supermariopy.pandaslib import df_empty
 # from scipy.misc import imresize
 
 
+def load_iuv(iuv_path):
+    """load i,u,v channels from xxx_iuv.png image
+    
+    Parameters
+    ----------
+    iuv_path : [str]
+        
+    Returns
+    -------
+    np.ndarray
+        channel of indexes, aka part labels
+    np.ndarray
+        channel of u coordinates
+    np.ndarray
+        channel of v coordinates
+    """
+    iuv = cv2.imread(iuv_path, -1)
+    i, u, v = list(map(np.squeeze, np.dsplit(iuv, 3)))
+    return i, u, v
+
+
 def calculate_centroids(labels, cca=False, background=0):
     """ 
     Calculate centroids from label map. 
@@ -357,7 +378,6 @@ def resize_labels(labels, size):
     ValueError
         if labels does not have valid shape
     """
-    # TODO: make this work for a single image
     if len(labels.shape) == 2:
         return cv2.resize(labels, size, interpolation=cv2.INTER_NEAREST)
     elif len(labels.shape) == 3:
@@ -504,6 +524,9 @@ def get_best_segmentation(
     return remapped_gt_segmentation, remapped_inferred
 
 
+import warnings
+
+warnings.warn("PART_DICT_ID2STR changed", Warning)
 PART_DICT_ID2STR = {
     0: "background",
     1: "back",
@@ -520,14 +543,14 @@ PART_DICT_ID2STR = {
     12: "back_left_lower_leg",
     13: "right_lower_leg",
     14: "left_lower_leg",
-    15: "left_upper_arm",
-    16: "right_upper_arm",
-    17: "left_upper_arm",
-    18: "right_upper_arm",
-    19: "left_lower_arm",
-    20: "right_lower_arm",
-    21: "left_lower_arm",
-    22: "right_lower_arm",
+    15: "left_upper_arm1",
+    16: "right_upper_arm1",
+    17: "left_upper_arm2",
+    18: "right_upper_arm2",
+    19: "left_lower_arm1",
+    20: "right_lower_arm1",
+    21: "left_lower_arm2",
+    22: "right_lower_arm2",
     23: "left_head",
     24: "right_head",
 }
