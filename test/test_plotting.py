@@ -58,3 +58,18 @@ class Test_Plotting:
         ax.plot(np.arange(10), np.arange(10))
         change_fontsize(ax, 5)
         return plt.gcf()
+
+    def test_colorpalettes(self):
+        from supermariopy import plotting
+
+        name = "msoffice"
+        palette = plotting.get_palette(name, bytes=False)
+        assert all((palette >= 0.0).ravel()) and all((palette <= 1.0).ravel())
+        palette = plotting.get_palette(name, bytes=True)
+        assert all((palette >= 0.0).ravel()) and all((palette <= 255.0).ravel())
+
+        name = "navy"
+        palette = plotting.get_palette(name, bytes=False)
+        assert all((palette >= 0.0).ravel()) and all((palette <= 1.0).ravel())
+        palette = plotting.get_palette(name, bytes=True)
+        assert all((palette >= 0.0).ravel()) and all((palette <= 255.0).ravel())

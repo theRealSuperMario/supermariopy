@@ -5,10 +5,11 @@ import math
 from typing import *
 import seaborn as sns
 
+# https://github.com/ubernostrum/webcolors
+import webcolors
+
 # import colorcet as cc
 # https://colorcet.pyviz.org/user_guide/Categorical.html
-
-# TODO rename module to something like : plotting, matborn (seaborn + matplotlib)
 
 
 def set_style():
@@ -24,16 +25,66 @@ TIKZ_RC_PARAMS = {
     "lines.linewidth": 2,
 }
 
-colors1 = np.array(sns.light_palette("navy", reverse=False, n_colors=10 + 1))[:, :3]
-colors2 = np.array(sns.light_palette("red", reverse=False, n_colors=10 + 1))[:, :3]
-colors3 = np.array(sns.light_palette("orange", reverse=False, n_colors=10 + 1))[:, :3]
-colors4 = np.array(sns.light_palette("black", reverse=False, n_colors=10 + 1))[:, :3]
 
 # TODO: define more color palettes
 # TODO: implement some of these
 # https://sk1project.net/palettes/
 
 COLOR_PALETTE_4 = np.array(sns.color_palette("bright", 4))[:, :3]
+
+"""
+https://sk1project.net/palettes/ms-office-2013-primary-colors/
+https://msdn.microsoft.com/en-us/library/office/dn684229.aspx
+implemented only first 12 colors
+"""
+PALETTES = ["msoffice", "navy"]
+
+
+def get_palette(name, bytes=False):
+    """Get color palette by name. See "plotting.PALETTES" for available palettes.
+    
+    Parameters
+    ----------
+    name : [type]
+        [description]
+    bytes : bool, optional
+        if True, palettes are returned as bytes, by default False
+    
+    Returns
+    -------
+    np.ndarray
+        palette
+    """
+    if name.lower() == "msoffice":
+        palette = [
+            r"#005A9E",
+            r"#0A6332",
+            r"#B83B1D",
+            r"#19478A",
+            r"#0072C6",
+            r"#217346",
+            r"#D24726",
+            r"#2B579A",
+            r"#2A8DD4",
+            r"#439467",
+            r"#F0623E",
+            r"#3E6DB5",
+        ]
+        palette = np.array([webcolors.hex_to_rgb(c) for c in palette])
+    elif name.lower() == "navy":
+        palette = np.array(sns.light_palette("navy", reverse=False, n_colors=10 + 1))[
+            :, :3
+        ]
+    if bytes:
+        return palette
+    else:
+        return palette / 255.0
+
+
+colors1 = get_palette("navy")
+colors2 = np.array(sns.light_palette("red", reverse=False, n_colors=10 + 1))[:, :3]
+colors3 = np.array(sns.light_palette("orange", reverse=False, n_colors=10 + 1))[:, :3]
+colors4 = np.array(sns.light_palette("black", reverse=False, n_colors=10 + 1))[:, :3]
 
 
 def imageStack_2_subplots(image_stack, axis=0):
@@ -100,9 +151,6 @@ def add_colorbars_to_axes(
         cbar = plt.colorbar(ax.images[0], cax=cax, **kwargs)
         cbars.append(cbar)
     return cbars
-
-
-# TODO: listmap: shortcut for list(map(f, args))
 
 
 def set_all_axis_off(axes: List = None) -> None:
