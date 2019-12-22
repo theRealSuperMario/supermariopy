@@ -7,8 +7,6 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 
-# TODO: write a small script that takes an _IUV.png file from densepose output and unpacks it into human readable I, U, V channels (RGB, not index map)
-
 
 @click.command()
 @click.argument("iuv-path")
