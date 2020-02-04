@@ -194,10 +194,8 @@ class FullLatentDistribution(object):
 
         ps = self.parameters.shape.as_list()
         if len(ps) != 2:
-            assert len(ps) == 4
-            assert ps[1] == ps[2] == 1
             self.expand_dims = True
-            self.parameters = tf.squeeze(self.parameters, axis=[1, 2])
+            self.parameters = tf.reshape(self.parameters, (ps[0], ps[3]))
             ps = self.parameters.shape.as_list()
         else:
             self.expand_dims = False
@@ -291,7 +289,6 @@ class MeanFieldDistribution(object):
         return out
 
     def kl_improper_gmrf(self):
-        # TODO use symmetric stencil
         dy, dx = tf.image.image_gradients(self.mean)
         grad_squared = tf.square(dy) + tf.square(dx)
         kl = 0.5 * grad_squared
@@ -348,5 +345,4 @@ def probs_to_mu_sigma(probs):
     )  # todo efficient (expand_dims)
     sigma = tf.einsum("ijmn,aijk->akmn", mesh_out_prod, probs) - mu_out_prod
     return mu, sigma
-
 

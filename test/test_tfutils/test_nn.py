@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import tensorflow as tf
+from supermariopy.tfutils import nn
 
 
 tf.enable_eager_execution()
@@ -28,3 +29,51 @@ def test_set_diag():
     diag_L = tf.ones((1, 3), dtype=params.dtype) * 6
     M = tf.linalg.set_diag(L, diag_L)
     assert np.allclose(tf.linalg.diag_part(M), diag_L)
+
+
+class Test_FullLatentDistribution:
+    def test_n_parameters(self):
+        dim = 10
+        assert nn.FullLatentDistribution.n_parameters(dim) == 65
+
+    def test_sample(self):
+        dim = 10
+        n_parameters = nn.FullLatentDistribution.n_parameters(dim)
+        parameters = tf.random_normal((1, n_parameters), dtype=tf.float32)
+        distr = nn.FullLatentDistribution(parameters, dim)
+        assert distr.sample().shape == (1, dim)
+
+        n_parameters = nn.FullLatentDistribution.n_parameters(dim)
+        parameters = tf.random_normal((10, 1, 1, n_parameters), dtype=tf.float32)
+        latent = nn.FullLatentDistribution(parameters, dim, False)
+        sample = latent.sample()
+        assert sample.shape == (10, 1, 1, dim)
+
+    def test_kl(self):
+        dim = 10
+        n_parameters = nn.FullLatentDistribution.n_parameters(dim)
+        parameters = tf.random_normal((1, n_parameters), dtype=tf.float32)
+        distr = nn.FullLatentDistribution(parameters, dim)
+        distr.mean = tf.zeros((1, dim), dtype=parameters.dtype)
+        distr.L = tf.linalg.set_diag(
+            tf.zeros((1, dim, dim), dtype=parameters.dtype),
+            tf.ones((1, dim), dtype=parameters.dtype),
+        )
+        distr.log_diag_L = tf.zeros((1, dim), dtype=parameters.dtype)
+        assert np.allclose(distr.kl(), np.array([0]))
+
+
+class Test_MeanFieldDistribution:
+    def test_kl_improper_gmrf(self):
+        dim = (128, 128, 1)
+        parameters = tf.zeros((1,) + dim)
+        mfd = nn.MeanFieldDistribution(parameters, dim)
+        kl = mfd.kl_improper_gmrf()
+        assert np.allclose(kl, np.array([0]))
+
+    def test_sample(self):
+        dim = (128, 128, 1)
+        parameters = tf.zeros((1,) + dim)
+        mfd = nn.MeanFieldDistribution(parameters, dim)
+        s = mfd.sample()
+        assert s.shape == parameters.shape
