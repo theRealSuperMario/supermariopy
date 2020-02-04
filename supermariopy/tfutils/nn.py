@@ -3,6 +3,10 @@ import tensorflow as tf
 import tensorflow.contrib.distributions as tfd
 
 
+def shape_as_list(t):
+    return list(t.shape)
+
+
 def tf_meshgrid(h, w):
     #     xs = np.linspace(-1.0,1.0,w)
     xs = np.arange(0, w)
