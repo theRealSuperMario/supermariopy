@@ -19,6 +19,44 @@ class SPADEResnetBlock(Layer):
         use_spectral_norm=False,
         spade_norm=SPADEParamFreeNormType.BATCH_NORM,
     ):
+        r"""Implementation of SPADE Residual Block. 
+        Applies SPADE on x and adds a skip. Does this two times, thus it has two SPADE blocks.
+
+        x-->SPADE1-->SPADE2--> + --> y
+        |                      |
+        ---------skip-----------
+
+        Each SPADE block implements a functional like f: x, segmap --> y
+        `x` is assumed to be a learned activation, which is then mapped to `y` conditioned on a spatial semantic map `segmap`.
+
+        If `n_channels_x_in` and `n_channels_x_out` is not the same, the skip connection is replaced by a third SPADE block.
+
+        Parameters
+        ----------
+        n_channels_x_in : int
+            number of feature channels of input.
+        n_channels_x_out : int
+            number of final output feature channels.
+        use_spectral_norm : bool, optional
+            not implemented yet, by default False
+        spade_norm : SPADEParamFreeNormType, optional
+            which norm each SPADE block uses, by default SPADEParamFreeNormType.BATCH_NORM
+
+        Returns
+        -------
+        tf.Tensor
+            y
+
+        Raises
+        ------
+        NotImplementedError
+
+
+        References
+        ----------
+        .. [1] https://github.com/NVlabs/SPADE/blob/master/models/networks/architecture.py
+        .. [2] https://arxiv.org/pdf/1903.07291.pdf
+        """
         super().__init__()
         # Attributes
         self.learned_shortcut = n_channels_x_in != n_channels_x_out
@@ -78,8 +116,29 @@ class SPADE(Layer):
         norm_type=SPADEParamFreeNormType.BATCH_NORM,
         kernel_size=[3, 3],
     ):
-        super().__init__()
+        """SPADE operation.
+        Each SPADE block implements a functional like f: x, segmap --> y
+        `x` is assumed to be a learned activation, which is then mapped to `y` conditioned on a spatial semantic map `segmap`.
 
+        Parameters
+        ----------
+        n_channels_x : int, optional
+            number of feature channels of input x, by default 64
+        n_channels_hidden : int, optional
+            number of hidden feature channels, by default 128
+        norm_type : SPADEParamFreeNormType, optional
+            internal normalization for x, by default SPADEParamFreeNormType.BATCH_NORM
+        kernel_size : list, optional
+            by default [3, 3]
+
+        Raises
+        ------
+        NotImplementedError
+            [description]
+        ValueError
+            [description]
+        """
+        super().__init__()
         if norm_type == SPADEParamFreeNormType.INSTANCE_NORM:
             # TODO: implement instance norm
             param_free_norm = tf.contrib.layers.instance_norm
