@@ -4,7 +4,9 @@ import tensorflow.contrib.distributions as tfd
 
 
 def shape_as_list(t):
-    return list(t.shape)
+    if isinstance(t, np.ndarray):
+        return list(t.shape)
+    return t.shape.as_list()
 
 
 def tf_meshgrid(h, w):
