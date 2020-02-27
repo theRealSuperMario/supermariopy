@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import tensorflow as tf
+import os
 from supermariopy.tfutils import nn
 
 
@@ -77,3 +78,27 @@ class Test_MeanFieldDistribution:
         mfd = nn.MeanFieldDistribution(parameters, dim)
         s = mfd.sample()
         assert s.shape == parameters.shape
+
+
+def test_ema(tmpdir):
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+    class Model(tf.keras.Model):
+        def __init__(self):
+            super(Model, self).__init__()
+            self.ema = nn.EMA()
+            self.ema.init_var("foo", 0.5)
+
+        def call(self, *args):
+            pass
+
+    model = Model()
+    checkpoint_path = str(tmpdir.mkdir("checkpoints").join("model"))
+    tfcheckpoint = tf.train.Checkpoint(model=model)
+    tfcheckpoint.write(checkpoint_path)
+
+    model.ema.update("foo", 1.0)
+
+    tfcheckpoint.restore(checkpoint_path)
+
+    assert model.ema.get_value("foo") == 0.5

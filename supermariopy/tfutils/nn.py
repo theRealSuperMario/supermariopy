@@ -185,6 +185,59 @@ def tf_hm(P, h, w, stddev, exp=True):
     return heat
 
 
+class EMA(tf.keras.Model):
+    def __init__(self, decay=0.99):
+        """https://stackoverflow.com/questions/40919706/updating-variable-values-in-tensorflow/40920104
+
+        Add ema to model so that the state of the values is saved and restored in the checkpoint.
+
+        Intended for use with tf eager
+        
+        Parameters
+        ----------
+        decay : float, optional
+            [description], by default 0.99
+
+        Example
+        -------
+
+                class Model(tf.keras.Model):
+                    def __init__(self):
+                        super(Model, self).__init__()
+                        self.ema = nn.EMA()
+                        self.ema.init_var("foo", 0.5)
+
+                    def call(self, *args):
+                        pass
+
+                model = Model()
+                checkpoint_path = str(tmpdir.mkdir("checkpoints").join("model"))
+                tfcheckpoint = tf.train.Checkpoint(model=model)
+                tfcheckpoint.write(checkpoint_path)
+                model.ema.update("foo", 1.0)
+                tfcheckpoint.restore(checkpoint_path)
+                assert model.ema.get_value("foo") == 0.5
+        """
+        super(EMA, self).__init__()
+        self.decay = decay
+        self.vars = {}
+
+    def init_var(self, name, value):
+        self.vars[name] = tf.Variable(
+            tf.convert_to_tensor(value), dtype=tf.float32, trainable=False, name=name
+        )
+
+    def update(self, name, new_value):
+        value = self.vars[name]
+        self.vars[name].assign(
+            self.decay * value + (1.0 - self.decay) * tf.cast(new_value, tf.float32)
+        )
+        return self.vars[name]
+
+    def get_value(self, name):
+        return self.vars[name].numpy()
+
+
 class FullLatentDistribution(object):
     # TODO: write some comment on where this comes from
     def __init__(self, parameters, dim, stochastic=True):
