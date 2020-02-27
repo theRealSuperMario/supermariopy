@@ -18,12 +18,11 @@ def argmax_rgb(m, cmap=plt.cm.viridis):
     np.array
         RGB mask tensor shaped [B, 3, H, W]
     """
-    B, P, H, W = nn.shape_as_list(m)
-    argmax_map = tf.arg_max(m, dimension=1)
+    B, H, W, P = nn.shape_as_list(m)
+    argmax_map = tf.arg_max(m, dimension=-1)
     colors = imageutils.make_colors(P, cmap=cmap)
     colors = colors.astype(np.float32)
     colors = tf.convert_to_tensor(colors)
     m_one_hot = tf.one_hot(argmax_map, P, axis=-1)
-    m_one_hot = tf.transpose(m_one_hot, (0, 3, 1, 2))
-    mask_rgb = tf.einsum("bphw,pc->bchw", m_one_hot, colors)
+    mask_rgb = tf.einsum("bhwp,pc->bhwc", m_one_hot, colors)
     return mask_rgb
