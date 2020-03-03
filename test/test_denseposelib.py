@@ -73,3 +73,26 @@ class Test_denseposelib:
 
         print(df_mean)
         np.testing.assert_almost_equal(df_mean["overall"], np.array([0.5 / 3]))
+
+    def test_remap_parts(self):
+        predicted_labels = np.zeros((1, 100, 100), dtype=np.int)
+        true_labels = np.zeros((1, 100, 100), dtype=np.int)
+
+        g = 1
+        for i in range(10):
+            for j in range(10):
+                predicted_labels[
+                    :, (i * 10) : (i + 1) * 10, (j * 10) : (j + 1) * 10
+                ] = g
+                g += 1
+
+        for i in range(5):
+            true_labels[:, (i * 20) : (i + 1) * 20, (i * 20) : (i + 1) * 20] = i + 1
+
+        from supermariopy.denseposelib import remap_parts
+        from supermariopy.metrics import compute_best_iou_remapping
+
+        remap_dict = compute_best_iou_remapping(predicted_labels, true_labels)
+        remapped_labels = remap_parts(predicted_labels, remap_dict)
+        assert np.all(remapped_labels == true_labels)
+
