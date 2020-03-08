@@ -4,6 +4,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import math
 from typing import *
 import seaborn as sns
+import cv2
+from supermariopy import imageutils
 
 # https://github.com/ubernostrum/webcolors
 import webcolors
@@ -37,7 +39,7 @@ https://sk1project.net/palettes/ms-office-2013-primary-colors/
 https://msdn.microsoft.com/en-us/library/office/dn684229.aspx
 implemented only first 12 colors
 """
-PALETTES = ["msoffice", "navy"]
+PALETTES = ["msoffice", "navy", "custom6"]
 
 
 def get_palette(name, bytes=False):
@@ -75,6 +77,17 @@ def get_palette(name, bytes=False):
         palette = np.array(sns.light_palette("navy", reverse=False, n_colors=10 + 1))[
             :, :3
         ]
+    elif name.lower() == "custom6":
+        # blue, red, purple, green, yellow, black
+        palette = [
+            r"#000AC8",
+            r"#dc0000",
+            r"#E498FF",
+            r"#99DE00",
+            r"#FFFF3E",
+            r"#000000",
+        ]
+        palette = np.array([webcolors.hex_to_rgb(c) for c in palette])
     if bytes:
         return palette
     else:
@@ -314,3 +327,69 @@ def ewma(x, alpha):
     # Calculate the ewma
     return np.dot(w, x[:: np.newaxis]) / w.sum(axis=1)
 
+
+def draw_keypoint_markers(
+    img: np.ndarray,
+    keypoints: np.ndarray,
+    font_scale: float = 0.5,
+    thickness: int = 2,
+    font=cv2.FONT_HERSHEY_SIMPLEX,
+    marker_list=["o", "v", "x", "+", "<", "-", ">", "c"],
+) -> np.ndarray:
+    """ Draw keypoints on image with markers
+    
+    Parameters
+    ----------
+    img : np.ndarray
+        shaped [H, W, 3] array  in range [0, 1]
+    keypoints : np.ndarray
+        shaped [kp, 2] - array giving keypoint positions in range [-1, 1] for x and y. keypoints[:, 0] is x-coordinate (horizontal).
+    font_scale : int, optional
+        openCV font scale passed to 'cv2.putText', by default 1
+    thickness : int, optional
+        openCV font thickness passed to 'cv2.putText', by default 2
+    font : cv2.FONT_xxx, optional
+        openCV font, by default cv2.FONT_HERSHEY_SIMPLEX
+    
+    Examples
+    --------
+
+        from skimage import data
+        astronaut = data.astronaut()
+        keypoints = np.stack([np.linspace(-1, 1, 10), np.linspace(-1, 1, 10)], axis=1)
+        img_marked = draw_keypoint_markers(astronaut, keypoints, font_scale=2, thickness=3)
+        plt.imshow(img_marked)
+    """
+    if not imageutils.is_in_range(img, [0, 1]):
+        raise RangeError(img, "img", [0, 1])
+    if img.shape[0] != img.shape[1]:
+        raise ValueError("only square images are supported currently")
+
+    img_marked = img.copy()
+    keypoints = imageutils.convert_range(keypoints, [-1, 1], [0, img.shape[0] - 1])
+    colors = imageutils.make_colors(
+        keypoints.shape[0], bytes=False, cmap=plt.cm.inferno
+    )
+    for i, kp in enumerate(keypoints):
+        text = marker_list[i % len(marker_list)]
+        (label_width, label_height), baseline = cv2.getTextSize(
+            text, font, font_scale, thickness
+        )
+        textX = kp[0]
+        textY = kp[1]
+        font_color = colors[i]
+        text_position = (
+            textX - label_width / 2.0 - baseline,
+            textY - label_height / 2.0 + baseline,
+        )
+        text_position = tuple([int(x) for x in text_position])
+        img_marked = cv2.putText(
+            img_marked,
+            text,
+            text_position,
+            font,
+            font_scale,
+            font_color,
+            thickness=thickness,
+        )
+    return img_marked
