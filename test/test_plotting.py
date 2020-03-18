@@ -73,3 +73,13 @@ class Test_Plotting:
         assert all((palette >= 0.0).ravel()) and all((palette <= 1.0).ravel())
         palette = plotting.get_palette(name, bytes=True)
         assert all((palette >= 0.0).ravel()) and all((palette <= 255.0).ravel())
+
+    def test_plot_canvas(self):
+        image = np.ones((128, 128, 3), dtype=np.uint8)
+        image_stack = np.stack([image * i for i in range(25)], axis=0)
+        from supermariopy import imageutils
+
+        canvas = imageutils.batch_to_canvas(image_stack)
+        from supermariopy import plotting
+
+        fig, ax = plotting.plot_canvas(canvas, 128, 128)

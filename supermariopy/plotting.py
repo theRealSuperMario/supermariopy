@@ -18,13 +18,30 @@ def set_style():
     plt.style.use("seaborn-whitegrid")
 
 
-NB_RC_PARAMS = {"figure.figsize": [5, 3], "figure.dpi": 220, "figure.autolayout": True}
+NB_RC_PARAMS = {
+    "figure.figsize": [5, 3],
+    "figure.dpi": 220,
+    "figure.autolayout": True,
+    "legend.frameon": True,
+}
+BLOG_RC_PARAMS_5x4 = {
+    "figure.figsize": [5, 4],
+    "figure.dpi": 150,
+    "figure.autolayout": True,
+    "legend.frameon": True,
+    "axes.titlesize": "xx-large",
+    "axes.labelsize": "x-large",
+    "xtick.labelsize": "x-large",
+    "ytick.labelsize": "x-large",
+    "legend.fontsize": "x-large",
+}
 TIKZ_RC_PARAMS = {
     "pgf.rcfonts": False,
     "figure.figsize": [5, 3],
     "figure.dpi": 220,
     "figure.autolayout": True,
     "lines.linewidth": 2,
+    "legend.frameon": True,
 }
 
 
@@ -127,9 +144,20 @@ def imageStack_2_subplots(image_stack, axis=0):
     return fig, axes
 
 
-def add_colorbars_to_axes(
-    axes=None, loc="right", size="5%", pad=0.05, **kwargs
-) -> None:
+def imageList_2_subplots(*image_list):
+    N_subplots = len(image_list)
+    R = math.floor(math.sqrt(N_subplots))
+    C = math.ceil(N_subplots / R)
+    fig, axes = plt.subplots(R, C)
+    axes = axes.ravel()
+    for ax, img in zip(axes, image_list):
+        ax.imshow(img)
+        ax.grid(False)
+        ax.set_axis_off()
+    return fig, axes
+
+
+def add_colorbars_to_axes(axes=None, loc="right", size="5%", pad=0.05, **kwargs):
     """add colorbars to each axis in the current figures list of axes
     
     Parameters
@@ -145,7 +173,8 @@ def add_colorbars_to_axes(
 
     Returns
     -------
-    None
+    list
+        list of colorbars
 
     Examples
     --------
@@ -166,7 +195,7 @@ def add_colorbars_to_axes(
     return cbars
 
 
-def set_all_axis_off(axes: List = None) -> None:
+def set_all_axis_off(axes: List = None):
     """apply ax.set_axis_off() to all given axis.
     Apply it to all axes in current figure if no axes are provided
 
@@ -393,3 +422,24 @@ def draw_keypoint_markers(
             thickness=thickness,
         )
     return img_marked
+
+
+def plot_canvas(canvas, delta_x, delta_y, show_grid=True, fig=None, ax=None):
+    """ plot a grid of images arranged in a canvas as obtained by `imageutils.batch_to_canvas` into the provided `ax` """
+    nx = canvas.shape[1] // delta_x
+    ny = canvas.shape[0] // delta_y
+
+    if ax is None or fig is None:
+        fig, ax = plt.subplots(1, 1)
+    ax.imshow(canvas, origin="lower")
+    ax.set_xticks(np.arange(nx) * delta_x + delta_x // 2)
+    ax.set_xlim(0, canvas.shape[1])
+    ax.set_yticks(np.arange(ny) * delta_y + delta_y // 2)
+    ax.set_ylim(0, canvas.shape[0])
+
+    if show_grid:
+        ax.set_xticks(np.arange(nx) * delta_x, minor=True)
+        ax.set_yticks(np.arange(ny) * delta_y, minor=True)
+        ax.grid(which="minor", color="#000000", linestyle="-")
+
+    return fig, ax
