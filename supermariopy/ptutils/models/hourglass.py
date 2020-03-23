@@ -55,6 +55,19 @@ class Bottleneck(nn.Module):
 
 class Hourglass(nn.Module):
     def __init__(self, block, num_blocks, planes, depth):
+        """Single Hourglass Network
+        
+        Parameters
+        ----------
+        block : Callable
+            black function to use
+        num_blocks : int
+            how many blocks to use at each stage
+        planes : int
+            num features to use at each stage
+        depth : int
+            how many times to downsample
+        """
         super(Hourglass, self).__init__()
         self.depth = depth
         self.block = block
@@ -96,7 +109,7 @@ class Hourglass(nn.Module):
 
 
 class HourglassNet(nn.Module):
-    """Hourglass model from Newell et al ECCV 2016"""
+    """Hourglass model from Newell et al ECCV 2016, aka stacked hourglass"""
 
     def __init__(self, block, num_stacks=2, num_blocks=4, num_classes=16):
         super(HourglassNet, self).__init__()

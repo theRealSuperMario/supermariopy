@@ -22,7 +22,6 @@ def test_hourglass():
     Hourglass block is supposed to map the same image dimensions back to the original image dimensions,
     but with more features.
     """
-
     from supermariopy.ptutils.models.hourglass import Hourglass, Bottleneck
 
     num_channels = 128
