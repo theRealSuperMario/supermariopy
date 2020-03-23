@@ -10,7 +10,8 @@ from supermariopy import imageutils
 # https://github.com/ubernostrum/webcolors
 import webcolors
 
-# import colorcet as cc
+import colorcet as cc
+
 # https://colorcet.pyviz.org/user_guide/Categorical.html
 
 
@@ -115,6 +116,7 @@ colors1 = get_palette("navy")
 colors2 = np.array(sns.light_palette("red", reverse=False, n_colors=10 + 1))[:, :3]
 colors3 = np.array(sns.light_palette("orange", reverse=False, n_colors=10 + 1))[:, :3]
 colors4 = np.array(sns.light_palette("black", reverse=False, n_colors=10 + 1))[:, :3]
+COLORS_GLASBEY_BW = cc.glasbey_bw
 
 
 def imageStack_2_subplots(image_stack, axis=0):
@@ -224,7 +226,8 @@ def set_all_axis_off(axes: List = None):
 def set_all_fontsize(axes: List = None, fs=3):
     if axes is None:
         axes = plt.gcf().get_axes()
-    map(lambda x: change_fontsize(x, fs), axes)
+    for ax in axes:
+        change_fontsize(ax, fs)
 
 
 def change_fontsize(ax, fs):
@@ -429,7 +432,7 @@ def plot_canvas(canvas, delta_x, delta_y, show_grid=True, fig=None, ax=None):
     nx = canvas.shape[1] // delta_x
     ny = canvas.shape[0] // delta_y
 
-    if ax is None or fig is None:
+    if ax is None and fig is None:
         fig, ax = plt.subplots(1, 1)
     ax.imshow(canvas, origin="lower")
     ax.set_xticks(np.arange(nx) * delta_x + delta_x // 2)
@@ -441,5 +444,58 @@ def plot_canvas(canvas, delta_x, delta_y, show_grid=True, fig=None, ax=None):
         ax.set_xticks(np.arange(nx) * delta_x, minor=True)
         ax.set_yticks(np.arange(ny) * delta_y, minor=True)
         ax.grid(which="minor", color="#000000", linestyle="-")
+
+    return fig, ax
+
+
+import matplotlib.pyplot as plt
+
+
+import io
+import cv2
+
+
+def figure_to_image(figure):
+    """Converts the matplotlib plot specified by 'figure' to a PNG image and
+    returns it. The supplied figure is closed and inaccessible after this call."""
+    # Save the plot to a PNG in memory.
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png")
+    # Closing the figure prevents it from being displayed directly inside
+    # the notebook.
+    plt.close(figure)
+    buf.seek(0)
+
+    # Convert PNG buffer to TF image
+    image = cv2.imdecode(np.frombuffer(buf.getvalue(), np.uint8), -1)[
+        ..., :3
+    ]  # no alpha
+    image = image.reshape((1,) + image.shape)
+    return image
+
+
+def plot_bars(
+    m, xticks=None, xticklabels=None, ylim=[0, 1], figsize=(5, 5), colors=None
+):
+    """ 
+        Barplot of an array shaped [N, ] with labels xticklabels on y axis
+        figsize (width, height)
+    """
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    if xticks is None:
+        xticks = np.arange(len(m))
+    if colors is None:
+        colors = cc.glasbey_light[1 : (len(m) + 1)]  # no white foreground
+
+    ax.bar(xticks, m, color=colors)
+    ax.set_xticks(xticks)
+    if xticklabels is None:
+        pass
+    else:
+        ax.set_xticklabels(xticklabels)
+
+    ax.set_ylim(ylim)
+    ax.set_xlim([-1 + np.min(xticks), np.max(xticks) + 1])
+    plt.tight_layout()
 
     return fig, ax

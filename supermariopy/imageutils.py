@@ -5,6 +5,8 @@ from matplotlib import pyplot as plt
 from scipy.stats import multivariate_normal
 import subprocess
 import math
+import deprecation
+import supermariopy
 
 
 class DimensionError(ValueError):
@@ -142,6 +144,12 @@ def make_colors(
     return colors
 
 
+@deprecation.deprecated(
+    deprecated_in="0.2",
+    removed_in="0.3",
+    current_version=supermariopy.__version__,
+    details="Use the function plotting.draw_keypoint_markers",
+)
 def draw_keypoint_markers(
     img: np.ndarray,
     keypoints: np.ndarray,
@@ -417,3 +425,46 @@ def vstack_paths(paths, out_path):
 def hstack_paths(paths, out_path):
     cmd = ["convert", "+append"] + paths + [out_path]
     subprocess.call(cmd)
+
+
+def rotate_bound(image, angle):
+    """ Pad and then rotate to prevent image cropping
+    
+    References
+    ----------
+        https://www.pyimagesearch.com/2017/01/02/rotate-images-correctly-with-opencv-and-python/
+    """
+    # grab the dimensions of the image and then determine the
+    # center
+    (h, w) = image.shape[:2]
+    (cX, cY) = (w // 2, h // 2)
+    # grab the rotation matrix (applying the negative of the
+    # angle to rotate clockwise), then grab the sine and cosine
+    # (i.e., the rotation components of the matrix)
+    M = cv2.getRotationMatrix2D((cX, cY), -angle, 1.0)
+    cos = np.abs(M[0, 0])
+    sin = np.abs(M[0, 1])
+    # compute the new bounding dimensions of the image
+    nW = int((h * sin) + (w * cos))
+    nH = int((h * cos) + (w * sin))
+    # adjust the rotation matrix to take into account translation
+    M[0, 2] += (nW / 2) - cX
+    M[1, 2] += (nH / 2) - cY
+    # perform the actual rotation and return the image
+    return cv2.warpAffine(image, M, (nW, nH))
+
+
+# TODO: hstack with padding and vstack with padding
+
+
+
+def hstack(*tlist, padding=0):
+    """ layout N, H, W, C """
+    # TODO: add padding option
+    return np.concatenate(tlist, axis=2)
+
+
+def vstack(*tlist, padding=0):
+    """ layout N, H, W, C """
+    # TODO: add padding option
+    return np.concatenate(tlist, axis=1)

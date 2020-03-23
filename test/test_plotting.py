@@ -1,5 +1,8 @@
 import pytest
 import numpy as np
+from supermariopy import plotting
+from matplotlib import pyplot as plt
+from sklearn.metrics import confusion_matrix
 
 
 class Test_Plotting:
@@ -83,3 +86,15 @@ class Test_Plotting:
         from supermariopy import plotting
 
         fig, ax = plotting.plot_canvas(canvas, 128, 128)
+
+    def test_plot_to_image(self):
+        fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+        ax.plot(np.arange(10), np.arange(10))
+        image = plotting.figure_to_image(fig)
+        assert image.shape == (1, 500, 500, 3)
+
+    @pytest.mark.mpl_image_compare
+    def test_plot_bars(self):
+        m = np.arange(20)
+        fig, ax = plotting.plot_bars(m)
+        return fig
