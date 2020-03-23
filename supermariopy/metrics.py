@@ -1,4 +1,5 @@
 import numpy as np
+from supermariopy import numpyutils as npu
 
 
 def compute_best_iou_remapping(predicted_labels, true_labels):
@@ -50,3 +51,41 @@ def compute_best_iou_remapping(predicted_labels, true_labels):
         best_label = unique_labels[best_iou_idx]
         best_remappings[pred_val] = int(np.squeeze(best_label))
     return best_remappings
+
+
+def segmentation_accuracy(prediction, target, num_classes, target_is_one_hot=False):
+    """return per class accuracy
+        
+        target : , index map-style
+    
+    Parameters
+    ----------
+    prediction : np.ndarray
+        shape [N, H, W, C]
+    target : np.ndarray
+        shape [N, H, W] or [N, H, W, C], depending on `target_is_one_hot`
+    num_classes : int
+        number of classes
+    target_is_one_hot : bool, optional
+        if False, will perform one-hot transformation internally, by default False
+    
+    Returns
+    -------
+    np.array
+        array with accuracies shaped [N, num_classes]
+    np.array
+        mean accuracy across all classes, shaped [N, ]
+    """
+
+    if not target_is_one_hot:
+        target_one_hot = npu.one_hot(target, num_classes, -1)
+    else:
+        target_one_hot = target
+    prediction = np.argmax(prediction, axis=-1)
+    prediction_one_hot = npu.one_hot(prediction, num_classes, -1)
+    accuracies = np.mean(
+        target_one_hot == prediction_one_hot, axis=(1, 2), keepdims=True
+    )
+    accuracies = np.reshape(accuracies, (-1, num_classes))
+    mean_accuracy = np.mean(accuracies, axis=1)
+    return accuracies, mean_accuracy
