@@ -504,3 +504,14 @@ def tile(a, n_tile, dim):
         np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)])
     )
     return torch.index_select(a, dim, order_index)
+
+
+# def weights_init(m):
+#     if isinstance(m, nn.Conv2d):
+#         W_shape = m.weight.shape
+#         fan_in = in_channels * W_shape[0] * W_shape[1]
+#         stdv = math.sqrt(1.0 / fan_in)
+#         if initdist == "uniform":
+#             V_initializer = tf.random_uniform_initializer(minval=-stdv, maxval=stdv)
+#             b_initializer = tf.random_uniform_initializer(minval=-stdv, maxval=stdv)
+#         xavier(m.bias.data)
