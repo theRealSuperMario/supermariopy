@@ -159,28 +159,29 @@ def imageList_2_subplots(*image_list):
     return fig, axes
 
 
-def add_colorbars_to_axes(axes=None, loc="right", size="5%", pad=0.05, **kwargs):
+def add_colorbars_to_axes(
+    axes=None, mappables=None, loc="right", size="5%", pad=0.05, **kwargs
+):
     """add colorbars to each axis in the current figures list of axes
     
     Parameters
     ----------
     axes : list, optional
         list of axes. Will use all axes from current figure if None, by default None
+    mappables : list, optional
+        list of mappables to get cmap from, e.g. m = ax.imshow()... will use ax.images if not given
     loc : str, optional
         where to put colorbar, by default "right"
     size : str, optional
         size of colorbar, by default "5%"
     pad : float, optional
         padding between canvas and colorbar, by default 0.05
-
     Returns
     -------
     list
         list of colorbars
-
     Examples
     --------
-
         plt.subplot(121); plt.imshow(np.arange(100).reshape((10,10)))
         plt.subplot(122); plt.imshow(np.arange(100).reshape((10,10)))
         add_colorbars_to_axes()
@@ -189,10 +190,12 @@ def add_colorbars_to_axes(axes=None, loc="right", size="5%", pad=0.05, **kwargs)
     if axes is None:
         axes = plt.gcf().get_axes()
     cbars = []
-    for ax in axes:
+    if mappables is None:
+        mappables = [ax.images[0] for ax in axes]
+    for ax, m in zip(axes, mappables):
         divider = make_axes_locatable(ax)
         cax = divider.append_axes(loc, size=size, pad=pad)
-        cbar = plt.colorbar(ax.images[0], cax=cax, **kwargs)
+        cbar = plt.colorbar(m, cax=cax, **kwargs)
         cbars.append(cbar)
     return cbars
 
@@ -428,7 +431,30 @@ def draw_keypoint_markers(
 
 
 def plot_canvas(canvas, delta_x, delta_y, show_grid=True, fig=None, ax=None):
-    """ plot a grid of images arranged in a canvas as obtained by `imageutils.batch_to_canvas` into the provided `ax` """
+    """plot a grid of images arranged in a canvas as obtained by `imageutils.batch_to_canvas` into the provided `ax` 
+    
+    Parameters
+    ----------
+    canvas : np.ndarray
+        grid of images
+    delta_x : np.ndarray
+        image size in horizontal (x) direction
+    delta_y : np.ndarray
+        image size in vertical (y) direction
+    show_grid : bool, optional
+        plot axes grid, by default True
+    fig : mpl figure, optional
+        if None, will create figure, by default None
+    ax : mpl axes, optional
+        if None, will create axes, by default None
+    
+    Returns
+    -------
+    mpl figure
+        figure
+    mpl axis
+        axis object
+    """
     nx = canvas.shape[1] // delta_x
     ny = canvas.shape[0] // delta_y
 
