@@ -1,5 +1,7 @@
 import numpy as np
 from supermariopy import numpyutils as npu
+import deprecation
+import supermariopy
 
 
 def compute_best_iou_remapping(predicted_labels, true_labels):
@@ -53,6 +55,85 @@ def compute_best_iou_remapping(predicted_labels, true_labels):
     return best_remappings
 
 
+def segmentation_iou(predicted_labels, true_labels, n_classes=None):
+    """Intersection over Union metric.
+
+    If stack of true and predicted labels is provided, will calculate IoU over entire stack, and not return mean.
+    
+    Parameters
+    ----------
+    predicted_labels : np.ndarray
+        single image labels shaped [H, W] of dtype int or stack of predicted labels shaped [N, H, W]
+    true_labels : np.ndarray
+        single image labels shaped [H, W] of dtype int or stack of true labels shaped [N, H, W]
+    n_classes : int
+        number of classes for segmentation problem. if None, will use unique values from true_labels.
+        Provide n_classes if not all labels occur in `true_labels`.
+    Returns
+    -------
+    np.ndarray
+        array of IoU values
+    """
+
+    if n_classes is None:
+        classes = np.unique(true_labels)
+    else:
+        classes = np.arange(n_classes)
+    I = np.stack(
+        [(true_labels == t) & (predicted_labels == t) for t in classes], axis=-1,
+    )
+    U = np.stack(
+        [(true_labels == t) | (predicted_labels == t) for t in classes], axis=-1,
+    )
+
+    axis = tuple(list(range(len(I.shape) - 1)))
+    IoU = np.sum(I, axis=axis) / np.sum(U, axis=axis)
+    return IoU
+
+
+def segmentation_coverage(predicted_labels, true_labels, n_classes):
+    """ coverage is intersection over true. It is sometimes used in unsupervised learning as a calibration step 
+
+    Parameters
+    ----------
+    predicted_labels : np.ndarray
+        single image labels shaped [H, W] of dtype int or stack of predicted labels shaped [N, H, W]
+    true_labels : np.ndarray
+        single image labels shaped [H, W] of dtype int or stack of true labels shaped [N, H, W]
+    n_classes : int
+        number of classes for segmentation problem. if None, will use unique values from true_labels.
+        Provide n_classes if not all labels occur in `true_labels`.
+    Returns
+    -------
+    np.ndarray
+        array of IoU values
+
+    References
+    ----------
+    [1] : Collins2018DeepFeatureFactorization
+    """
+
+    if n_classes is None:
+        classes = np.unique(true_labels)
+    else:
+        classes = np.arange(n_classes)
+    I = np.stack(
+        [(true_labels == t) & (predicted_labels == t) for t in classes], axis=-1
+    )
+    T = np.stack([true_labels == t for t in classes], axis=-1)
+
+    axis = tuple(list(range(len(I.shape) - 1)))
+    coverage = np.sum(I, axis=axis) / np.sum(T, axis=axis)
+    coverage = np.nan_to_num(coverage)
+    return coverage
+
+
+@deprecation.deprecated(
+    deprecated_in="0.2",
+    removed_in="0.3",
+    current_version=supermariopy.__version__,
+    details="it is not clear what this metric does exactly.",
+)
 def segmentation_accuracy(prediction, target, num_classes, target_is_one_hot=False):
     """return per class accuracy
         
