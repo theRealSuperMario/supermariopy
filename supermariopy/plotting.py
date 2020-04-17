@@ -6,6 +6,7 @@ from typing import *
 import seaborn as sns
 import cv2
 from supermariopy import imageutils
+from typing import *
 
 # https://github.com/ubernostrum/webcolors
 import webcolors
@@ -35,6 +36,8 @@ BLOG_RC_PARAMS_5x4 = {
     "xtick.labelsize": "x-large",
     "ytick.labelsize": "x-large",
     "legend.fontsize": "x-large",
+    # "grid.color": "black",
+    "grid.linewidth": 1.2,
 }
 TIKZ_RC_PARAMS = {
     "pgf.rcfonts": False,
@@ -117,6 +120,21 @@ colors2 = np.array(sns.light_palette("red", reverse=False, n_colors=10 + 1))[:, 
 colors3 = np.array(sns.light_palette("orange", reverse=False, n_colors=10 + 1))[:, :3]
 colors4 = np.array(sns.light_palette("black", reverse=False, n_colors=10 + 1))[:, :3]
 COLORS_GLASBEY_BW = cc.glasbey_bw
+
+LINESTYLE_TUPLES = [
+    ("loosely dotted", (0, (1, 10))),
+    ("dotted", (0, (1, 1))),
+    ("densely dotted", (0, (1, 1))),
+    ("loosely dashed", (0, (5, 10))),
+    ("dashed", (0, (5, 5))),
+    ("densely dashed", (0, (5, 1))),
+    ("loosely dashdotted", (0, (3, 10, 1, 10))),
+    ("dashdotted", (0, (3, 5, 1, 5))),
+    ("densely dashdotted", (0, (3, 1, 1, 1))),
+    ("dashdotdotted", (0, (3, 5, 1, 5, 1, 5))),
+    ("loosely dashdotdotted", (0, (3, 10, 1, 10, 1, 10))),
+    ("densely dashdotdotted", (0, (3, 1, 1, 1, 1, 1))),
+]
 
 
 def imageStack_2_subplots(image_stack, axis=0):
@@ -525,3 +543,42 @@ def plot_bars(
     plt.tight_layout()
 
     return fig, ax
+
+
+def overlay_boxes_without_labels(
+    image: np.ndarray,
+    bboxes: List[np.ndarray],
+    colors: Union[list, np.ndarray, None] = None,
+) -> np.ndarray:
+    """Adds the predicted boxes on top of the image
+    
+    Parameters
+    ----------
+    image : np.ndarray
+        an image as returned by OpenCV
+    bboxes : List[np.ndarray]
+        list of bounding box coordinates. Each bounding box is an np.array of shape 4 with [xmin, ymin, xmax ymax]
+    colors : Union[list, np.ndarray, None], optional
+        optional list of colors to choose for bounding box overlay, by default will only use red, by default None
+    
+    Returns
+    -------
+    np.ndarray
+        image with overlaid boxes
+
+    References
+    ----------
+    ..[1] TODO: reference to my personal mask-rcnn benchmark repo
+    """
+    if colors is None:
+        # choose red as color for all boxes
+        colors = [[255, 0, 0]] * len(bboxes)
+
+    for box, color in zip(bboxes, colors):
+        box = box.astype(np.int32)
+        top_left, bottom_right = list(box[:2]), list(box[2:])
+        image = cv2.rectangle(
+            image, tuple(top_left), tuple(bottom_right), tuple(color), 1
+        )
+
+    return image
