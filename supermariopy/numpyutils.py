@@ -26,6 +26,14 @@ def one_hot(a, num_classes, axis=-1):
     return a_onehot
 
 
+def argmax_one_hot(a, axis=1):
+    """ short for one_hot(np.argmax(a, axis=-1(), a.shape[-1]) """
+    B, H, W, P = a.shape
+    argmax_map = np.argmax(a, axis=-1)
+    m_one_hot = one_hot(argmax_map, P, axis=-1)
+    return m_one_hot
+
+
 def np_map_fn(func: Callable, data: Tuple) -> Tuple:
     """map func along axis 0 of each item in data.
 
