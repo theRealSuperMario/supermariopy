@@ -10,13 +10,13 @@ def argmax_rgb(m, cmap=plt.cm.viridis):
     
     Parameters
     ----------
-    m : [type]
-        [description]
+    m : tf.Tensor
+        Tensorflor tensor or numpy array as result of eager execution
 
     Returns
     -------
-    np.array
-        RGB mask tensor shaped [B, 3, H, W]
+    tf.Tensor
+        RGB mask tensor shaped [B, H, W, 3]
     """
     B, H, W, P = nn.shape_as_list(m)
     argmax_map = tf.arg_max(m, dimension=-1)

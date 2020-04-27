@@ -401,3 +401,65 @@ def probs_to_mu_sigma(probs):
     sigma = tf.einsum("ijmn,aijk->akmn", mesh_out_prod, probs) - mu_out_prod
     return mu, sigma
 
+
+import albumentations as A
+
+T_alpha = A.Compose(
+    [
+        A.RandomBrightness(p=1),
+        A.RandomBrightnessContrast(p=1),
+        A.HueSaturationValue(p=1),
+        A.ChannelShuffle(p=1),
+    ]
+)
+
+
+T_pi = A.Compose([A.HorizontalFlip(p=1), A.ShiftScaleRotate(p=1),])
+
+
+def part_map_to_mu_L_inv(part_maps, scal):
+    """
+    Calculate mean for each channel of part_maps
+    :param part_maps: tensor of part map activations [bn, h, w, n_part]
+    :return: mean calculated on a grid of scale [-1, 1]
+    """
+    bn, h, w, nk = part_maps.get_shape().as_list()
+    y_t = tf.tile(tf.reshape(tf.linspace(-1.0, 1.0, h), [h, 1]), [1, w])
+    x_t = tf.tile(tf.reshape(tf.linspace(-1.0, 1.0, w), [1, w]), [h, 1])
+    y_t = tf.expand_dims(y_t, axis=-1)
+    x_t = tf.expand_dims(x_t, axis=-1)
+    meshgrid = tf.concat([y_t, x_t], axis=-1)
+
+    mu = tf.einsum("ijl,aijk->akl", meshgrid, part_maps)
+    mu_out_prod = tf.einsum("akm,akn->akmn", mu, mu)
+
+    mesh_out_prod = tf.einsum("ijm,ijn->ijmn", meshgrid, meshgrid)
+    stddev = tf.einsum("ijmn,aijk->akmn", mesh_out_prod, part_maps) - mu_out_prod
+
+    a_sq = stddev[:, :, 0, 0]
+    a_b = stddev[:, :, 0, 1]
+    b_sq_add_c_sq = stddev[:, :, 1, 1]
+    eps = 1e-12
+
+    a = tf.sqrt(
+        a_sq + eps
+    )  # Σ = L L^T Prec = Σ^-1  = L^T^-1 * L^-1  ->looking for L^-1 but first L = [[a, 0], [b, c]
+    b = a_b / (a + eps)
+    c = tf.sqrt(b_sq_add_c_sq - b ** 2 + eps)
+    z = tf.zeros_like(a)
+
+    det = tf.expand_dims(tf.expand_dims(a * c, axis=-1), axis=-1)
+    row_1 = tf.expand_dims(
+        tf.concat([tf.expand_dims(c, axis=-1), tf.expand_dims(z, axis=-1)], axis=-1),
+        axis=-2,
+    )
+    row_2 = tf.expand_dims(
+        tf.concat([tf.expand_dims(-b, axis=-1), tf.expand_dims(a, axis=-1)], axis=-1),
+        axis=-2,
+    )
+
+    L_inv = (
+        scal / (det + eps) * tf.concat([row_1, row_2], axis=-2)
+    )  # L^⁻1 = 1/(ac)* [[c, 0], [-b, a]
+
+    return mu, L_inv
