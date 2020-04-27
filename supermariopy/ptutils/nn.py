@@ -506,12 +506,228 @@ def tile(a, n_tile, dim):
     return torch.index_select(a, dim, order_index)
 
 
-# def weights_init(m):
-#     if isinstance(m, nn.Conv2d):
-#         W_shape = m.weight.shape
-#         fan_in = in_channels * W_shape[0] * W_shape[1]
-#         stdv = math.sqrt(1.0 / fan_in)
-#         if initdist == "uniform":
-#             V_initializer = tf.random_uniform_initializer(minval=-stdv, maxval=stdv)
-#             b_initializer = tf.random_uniform_initializer(minval=-stdv, maxval=stdv)
-#         xavier(m.bias.data)
+def crop_bounding_boxes(image_t, boundingboxes_t):
+    """A differentiable version of bounding box cropping.
+
+    Note that if the number of bounding boxes per image is different, the output tensors have different sizes
+    
+    Parameters
+    ----------
+    image_t : torch.tensor
+        Tensor with a batch of images, shaped [N, C, H, W]
+    boundingboxes_t : torch.tensor
+        Tensor with a batch of bounding box coordinates, shaped [N, N_boxes, 4]. 
+        First 2 indicate top left corner, last 2 indicate bottom right corner (x_top, y_top, x_bottom, y_bottom)
+    """
+
+    image_stack = []
+    for image, box_coords in zip(image_t, boundingboxes_t):
+        crops = []
+        for coords in box_coords:
+            x_min, y_min, x_max, ymax = coords
+            crops.append(image[:, x_min:x_max, y_min:y_max])
+        image_stack.append(torch.stack(crops))
+    return image_stack
+
+
+def overlay_boxes_without_labels(image, predictions):
+    """
+    Adds the predicted boxes on top of the image
+
+    Arguments:
+        image (torch.tensor): image tensor shaped [1, 3, H, W]
+        predictions (BoxList): the result of the computation by the model.
+            It should contain the field `labels`.
+    """
+    image = image[0, ...]
+    image = image.permute(1, 2, 0)
+    image = image.numpy()
+    boxes = predictions.bbox
+
+    colors = [[255, 0, 0]] * len(boxes)
+
+    for box, color in zip(boxes, colors):
+        box = box.to(torch.int64)
+        top_left, bottom_right = box[:2].tolist(), box[2:].tolist()
+        image = cv2.rectangle(
+            image, tuple(top_left), tuple(bottom_right), tuple(color), 1
+        )
+
+    return image.get()
+
+
+def conv3x3(in_channels, out_channels, stride=1):
+    return nn.Conv2d(
+        in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False
+    )
+
+
+class ResidualBlock(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1):
+        """
+            From https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/deep_residual_network/main.py
+            Implements the following mapping
+
+            Inputs: x
+
+            y := x
+            --> y:= relu(bn(conv(y)))
+            --> y:= bn(conv(y))
+            --> y:= y + x
+            --> y:= relu(y)
+        """
+        super(ResidualBlock, self).__init__()
+        self.conv1 = conv3x3(in_channels, out_channels, stride)
+        self.bn1 = torch.nn.BatchNorm2d(out_channels)
+        self.relu = torch.nn.ReLU(inplace=True)
+        self.conv2 = conv3x3(out_channels, out_channels)
+        self.bn2 = torch.nn.BatchNorm2d(out_channels)
+
+    def forward(self, x):
+        residual = x
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out += residual
+        out = self.relu(out)
+        return out
+
+
+class ResidualBlock_NoBN(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1):
+        """
+        Adapted from 
+        https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/deep_residual_network/main.py
+        Implements the following mapping
+
+        Inputs: x
+
+        y := x
+        --> y:= relu(conv(y)))
+        --> y:= conv(y)
+        --> y:= y + x
+        --> y:= relu(y)
+        """
+        super(ResidualBlock_NoBN, self).__init__()
+        self.conv1 = torch.nn.Conv2d(
+            in_channels,
+            out_channels,
+            kernel_size=3,
+            stride=stride,
+            padding=1,
+            bias=False,
+        )
+        self.relu = torch.nn.ReLU(inplace=True)
+        self.conv2 = torch.nn.Conv2d(
+            out_channels,
+            out_channels,
+            kernel_size=3,
+            stride=stride,
+            padding=1,
+            bias=False,
+        )
+
+    def forward(self, x):
+        residual = x
+        out = self.conv1(x)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out += residual
+        out = self.relu(out)
+        return out
+
+
+class ConvBnRelu(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=1, strides=1, pad=0):
+        """conv without bias
+        
+        Parameters
+        ----------
+        torch : [type]
+            [description]
+        in_channels : [type]
+            [description]
+        out_channels : [type]
+            [description]
+        kernel_size : int, optional
+            [description], by default 1
+        strides : int, optional
+            [description], by default 1
+        pad : int, optional
+            [description], by default 0
+        """
+        super(ConvBnRelu, self).__init__()
+
+        self.conv = torch.nn.Conv2d(
+            in_channels, out_channels, kernel_size, stride=1, padding=pad, bias=False
+        )
+        self.bn = torch.nn.BatchNorm2d(out_channels)
+
+    def forward(self, x):
+        return torch.nn.ReLU()(self.bn(self.conv(x)))
+
+
+def part_map_to_mu_L_inv(part_maps, scal):
+    """
+    Calculate mean for each channel of part_maps
+    :param part_maps: tensor of part map activations [bn, h, w, n_part]
+    :return: mean calculated on a grid of scale [-1, 1]
+    """
+    bn, nk, h, w = list(part_maps.shape)
+    y_t = tile(torch.linspace(-1.0, 1.0, h).view([h, 1]), w, dim=1)
+    x_t = tile(torch.linspace(-1.0, 1.0, w).view([1, w]), h, dim=0)
+    y_t = torch.unsqueeze(y_t, axis=-1)
+    x_t = torch.unsqueeze(x_t, axis=-1)
+    meshgrid = torch.cat([y_t, x_t], axis=-1)
+
+    mu = torch.einsum("ijl,akij->akl", meshgrid, part_maps)
+    mu_out_prod = torch.einsum("akm,akn->akmn", mu, mu)
+
+    mesh_out_prod = torch.einsum("ijm,ijn->ijmn", meshgrid, meshgrid)
+    stddev = torch.einsum("ijmn,akij->akmn", mesh_out_prod, part_maps) - mu_out_prod
+
+    a_sq = stddev[:, :, 0, 0]
+    a_b = stddev[:, :, 0, 1]
+    b_sq_add_c_sq = stddev[:, :, 1, 1]
+    eps = 1e-12
+
+    a = torch.sqrt(
+        a_sq + eps
+    )  # Σ = L L^T Prec = Σ^-1  = L^T^-1 * L^-1  ->looking for L^-1 but first L = [[a, 0], [b, c]
+    b = a_b / (a + eps)
+    c = torch.sqrt(b_sq_add_c_sq - b ** 2 + eps)
+    z = torch.zeros_like(a)
+
+    det = torch.unsqueeze(torch.unsqueeze(a * c, dim=-1), dim=-1)
+    row_1 = torch.unsqueeze(
+        torch.cat([torch.unsqueeze(c, dim=-1), torch.unsqueeze(z, dim=-1)], dim=-1),
+        dim=-2,
+    )
+    row_2 = torch.unsqueeze(
+        torch.cat([torch.unsqueeze(-b, dim=-1), torch.unsqueeze(a, dim=-1)], dim=-1),
+        dim=-2,
+    )
+
+    L_inv = (
+        scal / (det + eps) * torch.cat([row_1, row_2], dim=-2)
+    )  # L^⁻1 = 1/(ac)* [[c, 0], [-b, a]
+    return mu, L_inv
+
+
+# TODO: small funciton to calculate padding sizes
+# https://github.com/pytorch/pytorch/issues/3867
+def _get_padding(size, kernel_size, stride, dilation):
+    padding = ((size - 1) * (stride - 1) + dilation * (kernel_size - 1)) // 2
+    return padding
+
+
+
+def meshgrid(image_height, image_width):
+    y_coords = 2.0 * torch.arange(image_height).unsqueeze(
+        1).expand(image_height, image_width) / (image_height - 1.0) - 1.0
+    x_coords = 2.0 * torch.arange(image_width).unsqueeze(
+        0).expand(image_height, image_width) / (image_width - 1.0) - 1.0
+
+    coords = torch.stack((y_coords, x_coords), dim=0)
