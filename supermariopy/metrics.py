@@ -92,7 +92,7 @@ def segmentation_iou(predicted_labels, true_labels, n_classes=None):
 
 
 def segmentation_coverage(predicted_labels, true_labels, n_classes):
-    """ coverage is intersection over true. It is sometimes used in unsupervised learning as a calibration step 
+    """ coverage is intersection over true. It is sometimes used in unsupervised learning as a calibration step.
 
     Parameters
     ----------
@@ -106,7 +106,7 @@ def segmentation_coverage(predicted_labels, true_labels, n_classes):
     Returns
     -------
     np.ndarray
-        array of IoU values
+        array of coverage values
 
     References
     ----------
