@@ -1,7 +1,8 @@
 import tensorflow as tf
+from tensorflow import keras as tfk
 from supermariopy.tfutils import nn as smnn
 from tensorflow.keras.layers import Layer
-
+from tensorflow.keras import layers
 from enum import Enum
 
 
@@ -169,3 +170,34 @@ class SPADE(Layer):
         out = normalized * (1 + gamma) + beta
         return out
 
+
+class Residual(tfk.layers.Layer):
+    def __init__(self, channels_in, kernel, **kwargs):
+        """ https://sebastianwallkoetter.wordpress.com/2018/04/08/layered-layers-residual-blocks-in-the-sequential-keras-api/ 
+        
+        Examples
+        --------
+
+            # usage within tfk.models.Model
+            def call(self, x)
+                return Residual(64, 3)(x)
+
+        """
+        super(Residual, self).__init__(**kwargs)
+        self.channels_in = channels_in
+        self.kernel = kernel
+
+    def call(self, x):
+        # the residual block using Keras functional API
+        first_layer = tfk.layers.Activation("linear", trainable=False)(x)
+        x = tfk.layers.Conv2D(self.channels_in, self.kernel, padding="same")(
+            first_layer
+        )
+        x = tfk.layers.Activation("relu")(x)
+        x = tfk.layers.Conv2D(self.channels_in, self.kernel, padding="same")(x)
+        residual = tfk.layers.Add()([x, first_layer])
+        x = tfk.layers.Activation("relu")(residual)
+        return x
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
