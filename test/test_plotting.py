@@ -98,3 +98,18 @@ class Test_Plotting:
         m = np.arange(20)
         fig, ax = plotting.plot_bars(m)
         return fig
+
+    @pytest.mark.mpl_image_compare
+    def test_overlay_boxes_without_labels(self):
+        fig, ax = plt.subplots(1, 1)
+        import skimage
+
+        image = skimage.data.astronaut()
+        bboxes = [np.array([0, 0, 50, 50])]
+
+        from supermariopy import plotting
+
+        overlay = plotting.overlay_boxes_without_labels(image, bboxes)
+
+        ax.imshow(overlay)
+        return fig
