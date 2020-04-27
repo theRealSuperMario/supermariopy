@@ -65,8 +65,16 @@ class VGG19(torch.nn.Module):
     def _normalize(self, x):
         """normalize with imagenet mean and standard deviations"""
         # TODO: imagenet normalization
+        from supermariopy.dl.constants import IMAGENET_MEAN, IMAGENET_STD
 
-        return x
+        mean = torch.from_numpy(IMAGENET_MEAN).view((1, 3, 1, 1))
+        mean = mean.to(x.device)
+        std = torch.from_numpy(IMAGENET_STD).view((1, 3, 1, 1))
+        std = std.to(x.device)
+
+        y = (x - mean) / std
+
+        return y
 
     def forward(self, X):
         """assumes X to be in range [0, 1].
@@ -92,7 +100,7 @@ class VGG19(torch.nn.Module):
 
 
 class VGGLoss(torch.nn.Module):
-    def __init__(self, gpu_ids):
+    def __init__(self, gpu_ids, weights=[1.0 / 32, 1.0 / 16, 1.0 / 8, 1.0 / 4, 1.0]):
         """
         
         Parameters
@@ -109,7 +117,7 @@ class VGGLoss(torch.nn.Module):
         super(VGGLoss, self).__init__()
         self.vgg = VGG19()
         self.criterion = torch.nn.L1Loss()
-        self.weights = [1.0 / 32, 1.0 / 16, 1.0 / 8, 1.0 / 4, 1.0]
+        self.weights = weights
 
     def forward(self, x, y):
         x_vgg, y_vgg = self.vgg(x), self.vgg(y)
