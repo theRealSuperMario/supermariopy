@@ -32,7 +32,19 @@ def test_to_torch():
     assert isinstance(y, torch.Tensor)
     assert y.shape == (1, 128, 128, 3)
 
-    x = np.zeros((1, 128, 128, 3))
+    x = np.zeros((1, 128, 128, 3), dtype=np.float64)
     y = ptu.to_torch(x, True)
     assert isinstance(y, torch.Tensor)
     assert y.shape == (1, 3, 128, 128)
+    assert y.dtype == torch.float32
+
+    x = np.zeros((1, 128, 128, 3), dtype=np.float32)
+    y = ptu.to_torch(x, True)
+    assert isinstance(y, torch.Tensor)
+    assert y.shape == (1, 3, 128, 128)
+    assert y.dtype == torch.float32
+
+
+def test_split_stack_reshape():
+    x = torch.zeros((1, 24, 128, 128))
+    y = ptu.split_stack_reshape(x, 3, 1, 1, 0)

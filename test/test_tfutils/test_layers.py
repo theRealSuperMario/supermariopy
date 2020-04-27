@@ -33,3 +33,20 @@ class Test_SpadeResBlock:
         spaded = block(x, m)
         assert smnn.shape_as_list(spaded) == [2, 128, 128, 64]
 
+
+class Test_ResidualBlock:
+    def test(self):
+        x = tf.random_normal((2, 128, 128, 3))
+        res_block = smlayers.ResidualBlock(filters=[64, 64, 3])
+        y = res_block(x)
+        assert smnn.shape_as_list(y) == [2, 128, 128, 3]
+
+        res_block = smlayers.ResidualBlock(filters=[3], kernel_sizes=[(3, 3)])
+        y = res_block(x)
+        assert smnn.shape_as_list(y) == [2, 128, 128, 3]
+
+        res_block = smlayers.ResidualBlock(
+            filters=[3], kernel_sizes=[(3, 3)], use_batch_norm=False
+        )
+        y = res_block(x)
+        assert smnn.shape_as_list(y) == [2, 128, 128, 3]

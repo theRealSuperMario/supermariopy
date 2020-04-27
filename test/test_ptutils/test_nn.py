@@ -25,13 +25,6 @@ def test_mumford_shah():
     assert True
 
 
-def test_full_latent_distribution():
-    dim = 10
-    n_parameters = nn.FullLatentDistribution.n_parameters(dim)
-    parameters = torch.rand(10, n_parameters)
-    latent = nn.FullLatentDistribution(parameters, dim, False)
-
-
 def test_filltriangular():
     params = torch.range(0, 5).view(1, 6)
     dim = 3
@@ -254,3 +247,19 @@ def test_flip():
     c_inv = nn.flip(c, 1)
 
     assert np.allclose(c.numpy()[:, ::-1], c_inv)
+
+
+def test_init():
+    conv = torch.nn.Conv2d(128, 128, 3)
+    assert True
+
+
+def test_convbnrelu():
+    N = 1
+    H = 128
+    W = 128
+    C = 10
+
+    x = torch.ones((N, C, H, W))
+    c_bn_relu = nn.ConvBnRelu(C, 256)(x)
+    assert list(c_bn_relu.shape) == [1, 256, H, W]
