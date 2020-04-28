@@ -503,6 +503,7 @@ def tile(a, n_tile, dim):
     order_index = torch.LongTensor(
         np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)])
     )
+    order_index = order_index.to(a.device)
     return torch.index_select(a, dim, order_index)
 
 

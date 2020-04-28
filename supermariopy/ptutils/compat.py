@@ -17,6 +17,12 @@ def torch_gather_nd(params, indices, params_shape, indices_shape):
     """dirty wrapper for tf.gather_nd to use with pytorch"""
     warnings.warn("Implemted using tfpyth, thus tensorflow is called in the back")
 
+    if any([params.is_cuda, indices.is_cuda, params_shape.is_cuda, indices_shape.is_cuda]):
+        params = params.cuda()
+        incices = indices.cuda()
+        params_shape = params_shape.cuda()
+        indices_shape = indices_shape.cuda()
+
     def func(params, indices):
         return tf.gather_nd(params, indices)
 
@@ -42,6 +48,7 @@ def torch_gather(params, indices, params_shape, indices_shape):
         input_shapes=[params_shape, indices_shape],
         input_dtypes=[tf.float32, tf.int32],
     )(params, indices)
+    out = out.to(params.device)
     return out
 
 
@@ -58,6 +65,7 @@ def torch_slice(input_, begin, size):
         # input_shapes=[params_shape, indices_shape],
         # input_dtypes=[tf.float32, tf.int32],
     )(input_)
+    out = out.to(input_.device)
     return out
 
 
