@@ -140,3 +140,29 @@ def torch_image_adjust_hue(image, delta):
         t_out.append(img_transformed)
     t_out = torch.stack(t_out, axis=0)
     return t_out
+
+
+def torch_sigmoid_cross_entropy_with_logits(logits, labels):
+    """always use this function with keyword arguments
+
+    Parameters
+    ----------
+    logits : [type]
+        [description]
+    labels : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+
+    References
+    ----------
+
+    [1]: https://discuss.pytorch.org/t/equivalent-of-tensorflows-sigmoid-cross-entropy-with-logits-in-pytorch/1985/13
+
+    # TODO: check if reduction mode matches tf.nn.sigmoid_cross_entropy_with_logits
+    """
+    criterion = torch.nn.BCEWithLogitsLoss(reduction="none")
+    return criterion(logits, labels)
