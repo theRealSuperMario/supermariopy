@@ -164,7 +164,9 @@ def adapt_tps_for_crop(tps_param, move_point, scal_point):
 
 
 def ThinPlateSpline(U, coord, vector, out_size, n_c, move=None, scal=None):
-    U = U.permute((0, 2, 3, 1))  # NCHW -> NHWC
+    # https://github.com/agrimgupta92/sgan/issues/22
+    U = U.permute((0, 2, 3, 1)).contiguous()  # NCHW -> NHWC
+
     coord = ptnn.flip(coord, -1)
     vector = ptnn.flip(vector, -1)
     num_batch, height, width, _ = ptnn.shape_as_list(U)
@@ -328,4 +330,5 @@ def ThinPlateSpline(U, coord, vector, out_size, n_c, move=None, scal=None):
     x = ptcompat.torch_reshape(x, [num_batch, out_height, out_width, 1])
     t_arr = torch.cat([y, x], dim=-1)
     output = output.permute((0, 3, 1, 2))  # NHWC --> NCHW
+    t_arr = t_arr.permute((0, 3, 1, 2))  # NHWC --> NCHW
     return output, t_arr
