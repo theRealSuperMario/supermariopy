@@ -17,7 +17,9 @@ def torch_gather_nd(params, indices, params_shape, indices_shape):
     """dirty wrapper for tf.gather_nd to use with pytorch"""
     warnings.warn("Implemted using tfpyth, thus tensorflow is called in the back")
 
-    if any([params.is_cuda, indices.is_cuda, params_shape.is_cuda, indices_shape.is_cuda]):
+    if any(
+        [params.is_cuda, indices.is_cuda, params_shape.is_cuda, indices_shape.is_cuda]
+    ):
         params = params.cuda()
         incices = indices.cuda()
         params_shape = params_shape.cuda()
@@ -35,38 +37,31 @@ def torch_gather_nd(params, indices, params_shape, indices_shape):
     return out
 
 
-def torch_gather(params, indices, params_shape, indices_shape):
-    """dirty wrapper for tf.gather_nd to use with pytorch"""
-    warnings.warn("Implemted using tfpyth, thus tensorflow is called in the back")
-
-    def func(params, indices):
-        return tf.gather(params, indices)
-
-    out = tfpyth.wrap_torch_from_tensorflow(
-        func,
-        ["params", "indices"],
-        input_shapes=[params_shape, indices_shape],
-        input_dtypes=[tf.float32, tf.int32],
-    )(params, indices)
-    out = out.to(params.device)
+def torch_gather(params, indices):
+    """ assumes params = (N, d) and indices = (N, ) shaped arrays"""
+    indices = torch_astype(indices, torch.int64)
+    out = params[indices, :]
     return out
 
 
-def torch_slice(input_, begin, size):
-    """dirty wrapper for tf.slice to use with pytorch"""
-    warnings.warn("Implemted using tfpyth, thus tensorflow is called in the back")
+# def torch_slice(input_, begin, size):
+#     """dirty wrapper for tf.slice to use with pytorch.
+#       https://discuss.pytorch.org/t/tensor-slice-in-pytorch/1449
+#     """
 
-    def func(input_):
-        return tf.slice(input_, begin, size)
+#     warnings.warn("Implemted using tfpyth, thus tensorflow is called in the back")
 
-    out = tfpyth.wrap_torch_from_tensorflow(
-        func,
-        ["input_"],
-        # input_shapes=[params_shape, indices_shape],
-        # input_dtypes=[tf.float32, tf.int32],
-    )(input_)
-    out = out.to(input_.device)
-    return out
+#     def func(input_):
+#         return tf.slice(input_, begin, size)
+
+#     out = tfpyth.wrap_torch_from_tensorflow(
+#         func,
+#         ["input_"],
+#         # input_shapes=[params_shape, indices_shape],
+#         # input_dtypes=[tf.float32, tf.int32],
+#     )(input_)
+#     out = out.to(input_.device)
+#     return out
 
 
 def torch_random_uniform(shape, lower, upper, dtype):
@@ -174,3 +169,31 @@ def torch_sigmoid_cross_entropy_with_logits(logits, labels):
     """
     criterion = torch.nn.BCEWithLogitsLoss(reduction="none")
     return criterion(logits, labels)
+
+
+def torch_unravel_index(index, shape):
+    """
+    x = torch.arange(30).view(10, 3)
+    for i in range(x.numel()):
+        assert i == x[unravel_index(i, x.shape)]
+
+    https://discuss.pytorch.org/t/how-to-do-a-unravel-index-in-pytorch-just-like-in-numpy/12987/2
+
+    Parameters
+    ----------
+    index : [type]
+        [description]
+    shape : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    out = []
+    for dim in reversed(shape):
+        out.append(index % dim)
+        index = index // dim
+    return tuple(reversed(out))
+

@@ -171,7 +171,6 @@ def ThinPlateSpline(U, coord, vector, out_size, n_c, move=None, scal=None):
     # https://github.com/agrimgupta92/sgan/issues/22
     U = U.permute((0, 2, 3, 1)).contiguous()  # NCHW -> NHWC
 
-
     coord = ptnn.flip(coord, -1)
     vector = ptnn.flip(vector, -1)
     num_batch, height, width, _ = ptnn.shape_as_list(U)
@@ -236,10 +235,10 @@ def ThinPlateSpline(U, coord, vector, out_size, n_c, move=None, scal=None):
         im_flat = ptcompat.torch_reshape(im, [-1, channels])
         # im_flat = tf.reshape(im, [-1, channels])
         im_flat = ptcompat.torch_astype(im_flat, torch.float32)
-        Ia = ptcompat.torch_gather(im_flat, idx_a, im_flat.shape, idx_a.shape)
-        Ib = ptcompat.torch_gather(im_flat, idx_b, im_flat.shape, idx_b.shape)
-        Ic = ptcompat.torch_gather(im_flat, idx_c, im_flat.shape, idx_c.shape)
-        Id = ptcompat.torch_gather(im_flat, idx_d, im_flat.shape, idx_d.shape)
+        Ia = ptcompat.torch_gather(im_flat, idx_a)
+        Ib = ptcompat.torch_gather(im_flat, idx_b)
+        Ic = ptcompat.torch_gather(im_flat, idx_c)
+        Id = ptcompat.torch_gather(im_flat, idx_d)
 
         # and finally calculate interpolated values
         x0_f = ptcompat.torch_astype(x0, torch.float32)
@@ -256,11 +255,15 @@ def ThinPlateSpline(U, coord, vector, out_size, n_c, move=None, scal=None):
 
     def _meshgrid(height, width, coord):
         x_t = ptcompat.torch_tile_nd(
-            ptcompat.torch_reshape(torch.linspace(-1.0, 1.0, width, device=coord.device), [1, width]),
+            ptcompat.torch_reshape(
+                torch.linspace(-1.0, 1.0, width, device=coord.device), [1, width]
+            ),
             [height, 1],
         )
         y_t = ptcompat.torch_tile_nd(
-            ptcompat.torch_reshape(torch.linspace(-1.0, 1.0, height, device=coord.device), [height, 1]),
+            ptcompat.torch_reshape(
+                torch.linspace(-1.0, 1.0, height, device=coord.device), [height, 1]
+            ),
             [1, width],
         )
         x_t_flat = ptcompat.torch_reshape(x_t, (1, 1, -1))
@@ -286,8 +289,10 @@ def ThinPlateSpline(U, coord, vector, out_size, n_c, move=None, scal=None):
         # transform A x (1, x_t, y_t, r1, r2, ..., rn) -> (x_s, y_s)
         # [bn, 2, pn+3] x [bn, pn+3, h*w] -> [bn, 2, h*w]
         T_g = torch.matmul(T, grid)
-        x_s = ptcompat.torch_slice(T_g, [0, 0, 0], [-1, 1, -1])
-        y_s = ptcompat.torch_slice(T_g, [0, 1, 0], [-1, 1, -1])
+        # x_s = ptcompat.torch_slice(T_g, [0, 0, 0], [-1, 1, -1])
+        # y_s = ptcompat.torch_slice(T_g, [0, 1, 0], [-1, 1, -1])
+        x_s = T_g[:, 0, :]
+        y_s = T_g[:, 1, :]
 
         if move is not None and scal is not None:
             off_y = torch.unsqueeze(move[:, :, 0], dim=-1)
@@ -305,7 +310,9 @@ def ThinPlateSpline(U, coord, vector, out_size, n_c, move=None, scal=None):
         return y, x
 
     def _solve_system(coord, vector):
-        ones = torch.ones([num_batch, num_point, 1], dtype=torch.float32, device=coord.device)
+        ones = torch.ones(
+            [num_batch, num_point, 1], dtype=torch.float32, device=coord.device
+        )
         p = torch.cat([ones, coord], 2)  # [bn, pn, 3]
 
         p_1 = ptcompat.torch_reshape(p, [num_batch, -1, 1, 3])  # [bn, pn, 1, 3]
