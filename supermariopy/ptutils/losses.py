@@ -9,6 +9,7 @@ import torchvision
 import torchvision.models as models
 from torchvision import transforms, utils, datasets
 from supermariopy.ptutils import nn as nn
+from typing import *
 
 
 # VGG architecture, used for the perceptual loss using a pretrained VGG network
@@ -102,7 +103,7 @@ class VGG19(torch.nn.Module):
 class VGGLoss(torch.nn.Module):
     def __init__(self, gpu_ids, weights=[1.0 / 32, 1.0 / 16, 1.0 / 8, 1.0 / 4, 1.0]):
         """
-        
+        input is assumed to be in range [0, 1]
         Parameters
         ----------
         torch : [type]
@@ -128,10 +129,17 @@ class VGGLoss(torch.nn.Module):
 
 
 class VGGLossWithL1(VGGLoss):
-    def __init__(self, gpu_ids, l1_alpha=1.0, vgg_alpha=1.0):
+    def __init__(
+        self,
+        gpu_ids,
+        l1_alpha=1.0,
+        vgg_alpha=1.0,
+        weights=[1.0 / 32, 1.0 / 16, 1.0 / 8, 1.0 / 4, 1.0],
+    ):
+        """input is assumed to be in range [0, 1]"""
         self.l1_alpha = l1_alpha
         self.vgg_alpha = vgg_alpha
-        super(VGGLossWithL1, self).__init__(gpu_ids)
+        super(VGGLossWithL1, self).__init__(gpu_ids, weights=weights)
 
     def forward(self, x, y):
         vgg_loss = super(VGGLossWithL1, self).forward(x, y)
@@ -140,3 +148,4 @@ class VGGLossWithL1(VGGLoss):
 
 
 # TODO: add VGG19+L1 loss
+
