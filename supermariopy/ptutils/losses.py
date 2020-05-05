@@ -42,7 +42,9 @@ class VGG19(torch.nn.Module):
         tfutils.losses.VGG19Features
         """
         super().__init__()
-        vgg_pretrained_features = torchvision.models.vgg19(pretrained=True).features
+        vgg_pretrained_features = (
+            torchvision.models.vgg19(pretrained=True).eval().features
+        )
         self.slice1 = torch.nn.Sequential()
         self.slice2 = torch.nn.Sequential()
         self.slice3 = torch.nn.Sequential()
@@ -147,5 +149,79 @@ class VGGLossWithL1(VGGLoss):
         return loss
 
 
-# TODO: add VGG19+L1 loss
+class PerceptualVGG(torch.nn.Module):
+    VGG_OUTPUT = ["input", "relu1_2", "relu2_2", "relu3_2", "relu4_2", "relu5_2"]
 
+    def __init__(
+        self,
+        vgg=torchvision.models.vgg19(pretrained=True).eval(),
+        vgg_feat_weights=[1.0,] * 6,
+    ):
+        """ this implementation seems to be different than the one above in `VGGLoss`"""
+        super().__init__()
+        if isinstance(vgg, torch.nn.DataParallel):
+            self.vgg_layers = vgg.module.features
+        else:
+            self.vgg_layers = vgg.features
+
+        self.loss_weights = vgg_feat_weights
+
+        self.register_buffer(
+            "mean",
+            torch.tensor([0.485, 0.456, 0.406], dtype=torch.float)
+            .unsqueeze(dim=0)
+            .unsqueeze(dim=-1)
+            .unsqueeze(dim=-1),
+        )
+
+        self.register_buffer(
+            "std",
+            torch.tensor([0.229, 0.224, 0.225], dtype=torch.float)
+            .unsqueeze(dim=0)
+            .unsqueeze(dim=-1)
+            .unsqueeze(dim=-1),
+        )
+        self.target_layers = {
+            "3": "relu1_2",
+            "8": "relu2_2",
+            "13": "relu3_2",
+            "22": "relu4_2",
+            "31": "relu5_2",
+        }
+
+    def forward(self, x):
+        """ x in range [0, 1] """
+        x = (x - self.mean) / self.std
+
+        out = {"input": x}
+
+        for name, submodule in self.vgg_layers._modules.items():
+            if name in self.target_layers:
+                x = submodule(x)
+                out[self.target_layers[name]] = x
+            else:
+                x = submodule(x)
+        return out
+
+    def loss(self, target, pred):
+        VGGOutput = self.VGG_OUTPUT
+        weights = self.loss_weights
+        target_feats = self(target)
+        target_feats = [target_feats[k] for k in VGGOutput]
+        pred_feats = self(pred)
+        pred_feats = [pred_feats[k] for k in VGGOutput]
+
+        criterion = torch.nn.L1Loss()
+
+        losses = [
+            weights[0]
+            * criterion(target_feats[0], pred_feats[0])
+            .unsqueeze(dim=-1)
+            .to(torch.float)
+        ]
+
+        for i, (tf, pf) in enumerate(zip(target_feats[1:], pred_feats[1:])):
+            loss = weights[i + 1] * criterion(tf, pf).unsqueeze(dim=-1)
+
+            losses.append(loss)
+        return losses
