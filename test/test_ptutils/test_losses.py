@@ -43,5 +43,9 @@ class Test_PerceptualVGG:
         x = torch.zeros((1, 3, 224, 224))
         vgg2 = smptlosses.PerceptualVGG()
 
-        loss = vgg2.loss(x, x)
+        losses = vgg2.loss(x, x)
+        assert len(losses) == 6
 
+        vgg2 = smptlosses.PerceptualVGG(use_gram=True)
+        losses = vgg2.loss(x, x)
+        assert len(losses) == 12

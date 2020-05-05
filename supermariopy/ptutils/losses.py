@@ -9,6 +9,7 @@ import torchvision
 import torchvision.models as models
 from torchvision import transforms, utils, datasets
 from supermariopy.ptutils import nn as nn
+from supermariopy.ptutils import compat as ptcompat
 from typing import *
 
 
@@ -155,16 +156,22 @@ class PerceptualVGG(torch.nn.Module):
     def __init__(
         self,
         vgg=torchvision.models.vgg19(pretrained=True).eval(),
-        vgg_feat_weights=[1.0,] * 6,
+        feature_weights=[1.0,] * 6,
+        use_gram=False,
+        gram_weights=[0.1,] * 6,
     ):
-        """ this implementation seems to be different than the one above in `VGGLoss`"""
+        """ this implementation seems to be different than the one above in `VGGLoss`
+        this implementation is based on the vunet paper
+        """
         super().__init__()
         if isinstance(vgg, torch.nn.DataParallel):
             self.vgg_layers = vgg.module.features
         else:
             self.vgg_layers = vgg.features
 
-        self.loss_weights = vgg_feat_weights
+        self.feature_weights = feature_weights
+        self.gram_weights = gram_weights
+        self.use_gram = use_gram
 
         self.register_buffer(
             "mean",
@@ -203,9 +210,20 @@ class PerceptualVGG(torch.nn.Module):
                 x = submodule(x)
         return out
 
-    def loss(self, target, pred):
+    def grams(self, fs):
+        gs = list()
+        for f in fs:
+            bs, c, h, w = list(f.shape)
+            f = ptcompat.torch_reshape(f, [bs, c, h * w])
+            ft = f.permute([0, 2, 1])
+            g = torch.matmul(f, ft)
+            g = g / (4.0 * h * w)
+            gs.append(g)
+        return gs
+
+    def loss(self, target: torch.Tensor, pred: torch.Tensor) -> List[torch.Tensor]:
         VGGOutput = self.VGG_OUTPUT
-        weights = self.loss_weights
+        weights = self.feature_weights
         target_feats = self(target)
         target_feats = [target_feats[k] for k in VGGOutput]
         pred_feats = self(pred)
@@ -214,14 +232,17 @@ class PerceptualVGG(torch.nn.Module):
         criterion = torch.nn.L1Loss()
 
         losses = [
-            weights[0]
-            * criterion(target_feats[0], pred_feats[0])
-            .unsqueeze(dim=-1)
-            .to(torch.float)
+            criterion(xf, yf).unsqueeze(dim=-1).to(torch.float)
+            for xf, yf in zip(target_feats, pred_feats)
         ]
 
-        for i, (tf, pf) in enumerate(zip(target_feats[1:], pred_feats[1:])):
-            loss = weights[i + 1] * criterion(tf, pf).unsqueeze(dim=-1)
+        if self.use_gram:
+            target_grams = self.grams(target_feats)
+            pred_grams = self.grams(pred_feats)
+            gram_losses = [
+                criterion(xf, yf).unsqueeze(dim=-1).to(torch.float)
+                for xf, yf in zip(target_grams, pred_grams)
+            ]
+            losses = losses + gram_losses
 
-            losses.append(loss)
         return losses
