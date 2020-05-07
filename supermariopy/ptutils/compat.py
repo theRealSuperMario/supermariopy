@@ -13,28 +13,50 @@ def torch_tile_nd(a, n_tile_nd):
     return a
 
 
-def torch_gather_nd(params, indices, params_shape, indices_shape):
-    """dirty wrapper for tf.gather_nd to use with pytorch"""
-    warnings.warn("Implemted using tfpyth, thus tensorflow is called in the back")
+def torch_gather_nd(params, indices):
+    """Gather values from params given a multidimensinonal list of indices
 
-    if any(
-        [params.is_cuda, indices.is_cuda, params_shape.is_cuda, indices_shape.is_cuda]
-    ):
-        params = params.cuda()
-        incices = indices.cuda()
-        params_shape = params_shape.cuda()
-        indices_shape = indices_shape.cuda()
+    Parameters
+    ----------
+    params : torch.Tensor
+        d-dimensional tensor
+    indices : torch.Tensor
+        multidimensional list of d-dimensional indices
 
-    def func(params, indices):
-        return tf.gather_nd(params, indices)
+    Returns
+    -------
+    torch.Tensor
+        Gathered Tensor
 
-    out = tfpyth.wrap_torch_from_tensorflow(
-        func,
-        ["params", "indices"],
-        input_shapes=[params_shape, indices_shape],
-        input_dtypes=[tf.float32, tf.int32],
-    )(params, indices)
-    return out
+    Examples
+    --------
+
+        4D example
+        params: tensor shaped [n_1, n_2, n_3, n_4] --> 4 dimensional
+        indices: tensor shaped [m_1, m_2, m_3, m_4, 4] --> multidimensional list of 4D indices
+        returns: tensor shaped [m_1, m_2, m_3, m_4]
+
+        ND_example
+        params: tensor shaped [n_1, ..., n_p] --> d-dimensional tensor
+        indices: tensor shaped [m_1, ..., m_i, d] --> multidimensional list of d-dimensional indices
+        returns: tensor shaped [m_1, ..., m_1]
+
+    References
+    ----------
+    [1] : https://discuss.pytorch.org/t/how-to-do-the-tf-gather-nd-in-pytorch/6445/26
+    """
+    out_shape = indices.shape[:-1]
+    indices = indices.unsqueeze(0).transpose(0, -1)  # roll last axis to fring
+    ndim = indices.shape[0]
+    indices = indices.long()
+    idx = torch.zeros_like(indices[0], device=indices.device).long()
+    m = 1
+
+    for i in range(ndim)[::-1]:
+        idx += indices[i] * m
+        m *= params.size(i)
+    out = torch.take(params, idx)
+    return out.view(out_shape)
 
 
 def torch_gather(params, indices):
