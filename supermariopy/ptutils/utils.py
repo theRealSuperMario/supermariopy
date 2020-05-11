@@ -51,7 +51,9 @@ def linear_variable(
     step, start, end, start_value, end_value, clip_min=0.0, clip_max=1.0
 ):
     """linear from (a, alpha) to (b, beta), i.e.
-    (beta - alpha)/(b - a) * (x - a) + alpha"""
+    (beta - alpha) / (b - a) * (x - a) + alpha """
+    if not isinstance(step, torch.Tensor):
+        step = torch.tensor(step)
     linear = (end_value - start_value) / (end - start) * (
         ptcompat.torch_astype(step, torch.float32) - start
     ) + start_value

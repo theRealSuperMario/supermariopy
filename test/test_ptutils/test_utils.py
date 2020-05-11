@@ -59,3 +59,10 @@ def test_linear_variable():
     v = ptu.linear_variable(x, 10, 100, 0, 1, 0.0, 1.0)
     assert v == 1.0
 
+    x = 0
+    v = ptu.linear_variable(x, 10, 100, 0, 1, 0.0, 1.0)
+    assert v == 0.0
+
+    x = int(0)
+    v = ptu.linear_variable(x, 10, 100, 0, 1, 0.0, 1.0)
+    assert v == 0.0
