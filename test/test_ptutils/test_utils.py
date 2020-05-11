@@ -48,3 +48,14 @@ def test_to_torch():
 def test_split_stack_reshape():
     x = torch.zeros((1, 24, 128, 128))
     y = ptu.split_stack_reshape(x, 3, 1, 1, 0)
+
+
+def test_linear_variable():
+    x = torch.tensor([0])
+    v = ptu.linear_variable(x, 10, 100, 0, 1, 0.0, 1.0)
+    assert v == 0.0
+
+    x = torch.tensor([101])
+    v = ptu.linear_variable(x, 10, 100, 0, 1, 0.0, 1.0)
+    assert v == 1.0
+

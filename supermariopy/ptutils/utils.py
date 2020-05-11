@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from supermariopy.ptutils import compat as ptcompat
 
 
 def to_numpy(x, permute=False):
@@ -44,3 +45,14 @@ def split_stack_reshape(x, split_sizes=3):
     shape_[0] = -1
     shape_[1] = split_sizes
     return t.view(shape_)
+
+
+def linear_variable(
+    step, start, end, start_value, end_value, clip_min=0.0, clip_max=1.0
+):
+    """linear from (a, alpha) to (b, beta), i.e.
+    (beta - alpha)/(b - a) * (x - a) + alpha"""
+    linear = (end_value - start_value) / (end - start) * (
+        ptcompat.torch_astype(step, torch.float32) - start
+    ) + start_value
+    return linear.clamp(clip_min, clip_max)
