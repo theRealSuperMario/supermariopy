@@ -37,6 +37,10 @@ class Test_PerceptualVGG:
         loss = perceptual_vgg.loss(tf.convert_to_tensor(x), tf.convert_to_tensor(y))
         assert all([np.allclose(l, np.array([0])) for l in loss])
 
+        y = image.resize_bilinear(y, [224, 224]) + tf.random.normal(y.shape)
+        loss = perceptual_vgg.loss(tf.convert_to_tensor(x), tf.convert_to_tensor(y))
+        assert all([not np.allclose(l, np.array([0])) for l in loss])
+
     def test_session(self):
         vgg = VGG19(include_top=False, weights="imagenet")
         vgg.trainable = False
