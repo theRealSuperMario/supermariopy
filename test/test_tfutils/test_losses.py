@@ -36,3 +36,31 @@ class Test_PerceptualVGG:
         y = image.resize_bilinear(y, [224, 224])
         loss = perceptual_vgg.loss(tf.convert_to_tensor(x), tf.convert_to_tensor(y))
         assert all([np.allclose(l, np.array([0])) for l in loss])
+
+    def test_session(self):
+        vgg = VGG19(include_top=False, weights="imagenet")
+        vgg.trainable = False
+        session = tf.compat.v1.Session()
+        perceptual_vgg = smlosses.PerceptualVGG(vgg=vgg, eager=False, session=session)
+
+        from skimage import data
+        from supermariopy.tfutils import image
+
+        x = (
+            data.astronaut()
+            .astype(np.float32)
+            .reshape((1, 512, 512, 3))[:, :224, :224, :]
+        )
+        y = (
+            data.astronaut()
+            .astype(np.float32)
+            .reshape((1, 512, 512, 3))[:, :224, :224, :]
+        )
+
+        x_ph = tf.placeholder(shape=(1, 224, 224, 3), dtype=tf.float32)
+        y_ph = tf.placeholder(shape=(1, 224, 224, 3), dtype=tf.float32)
+
+        loss = perceptual_vgg.loss(x_ph, y_ph)
+        session.run(tf.initialize_all_variables())
+        loss_v = session.run(loss, {x_ph: x, y_ph: y})
+        assert all([np.allclose(l, np.array([0])) for l in loss_v])
