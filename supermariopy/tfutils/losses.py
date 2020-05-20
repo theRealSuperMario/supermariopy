@@ -8,7 +8,12 @@ import numpy as np
 # vgg19 from keras
 from tensorflow.contrib.keras.api.keras.models import Model
 from tensorflow.contrib.keras.api.keras.applications.vgg19 import VGG19
+
+# TODO: test if keras VGG19 gives same results as pytorch VGG19
 from tensorflow.contrib.keras.api.keras import backend as K
+from typing import *
+
+from supermariopy.tfutils import image
 
 
 def _ll_loss(target, reconstruction, log_variance, calibrate):
@@ -145,7 +150,7 @@ class VGG19Features(object):
         use_gram = gram_log_variances is not None
         if self.original_scale:
             xy = tf.concat([x, y], axis=0)
-            xy = tf.image.resize_bilinear(xy, [256, 256])
+            xy = image.resize_bilinear(xy, [256, 256])
             bs = tf.shape(xy)[0]
             xy = tf.random_crop(xy, [bs, 224, 224, 3])
             x, y = tf.split(xy, 2, 0)
@@ -232,3 +237,101 @@ class VGG19Features(object):
         # Zero-center by mean pixel
         x = x - np.array([103.939, 116.779, 123.68]).reshape((1, 1, 1, 3))
         return x
+
+
+def l1_loss(x, y):
+    diff = tf.math.abs(x - y)
+    return tf.reduce_mean(diff)
+
+
+class PerceptualVGG(object):
+    def __init__(
+        self,
+        vgg,
+        feature_weights=[1.0,] * 6,
+        use_gram=False,
+        gram_weights=[0.1,] * 6,
+        eager=False,
+        session=None,
+    ):
+        self.vgg = vgg
+        self.feature_weights = feature_weights
+        self.gram_weights = gram_weights
+        self.use_gram = use_gram
+        self.target_layers = [
+            # "input_1",
+            "block1_conv2",
+            "block2_conv2",
+            "block3_conv2",
+            "block4_conv2",
+            "block5_conv2",
+        ]
+
+        if eager:
+            pass
+        else:
+            K.set_session(session)
+        self.layer_names = [l.name for l in self.vgg.layers]
+        for k in self.target_layers:
+            if not k in self.layer_names:
+                raise KeyError(
+                    "Invalid layer {}. Available layers: {}".format(k, self.layer_names)
+                )
+        features = [self.vgg.get_layer(k).output for k in self.target_layers]
+        self.model = Model(inputs=self.vgg.input, outputs=features)
+        self.variables = self.vgg.weights
+
+    def grams(self, fs: List):
+        gs = list()
+        for f in fs:
+            bs, h, w, c = f.shape.as_list()
+            bs = -1 if bs is None else bs
+            f = tf.reshape(f, [bs, h * w, c])
+            ft = tf.transpose(f, [0, 2, 1])
+            g = tf.matmul(ft, f)
+            g = g / (4.0 * h * w)
+            gs.append(g)
+        return gs
+
+    def forward(self, x):
+        """ x in range [0, 255] and shaped [B, 224, 224, 3]"""
+
+        # RGB --> BGR
+        x = x[:, :, :, ::-1]
+        # Zero-center by mean pixel
+        x = x - np.array([103.939, 116.779, 123.68]).reshape((1, 1, 1, 3))
+        # Divide not by standard distribution
+
+        out = {"input": x}
+
+        out_ = self.model(x)
+        for i, k in enumerate(self.target_layers):
+            out[k] = out_[i]
+        return out
+
+    def loss(self, target: tf.Tensor, pred: tf.Tensor):
+        VGGOutput = self.target_layers
+        weights = self.feature_weights
+        target_feats = self.forward(target)
+        target_feats = [target_feats[k] for k in VGGOutput]
+        pred_feats = self.forward(pred)
+        pred_feats = [pred_feats[k] for k in VGGOutput]
+
+        criterion = l1_loss
+
+        losses = [
+            tf.expand_dims(criterion(xf, yf), axis=-1)
+            for xf, yf in zip(target_feats, pred_feats)
+        ]
+
+        if self.use_gram:
+            target_grams = self.grams(target_feats)
+            pred_grams = self.grams(pred_feats)
+            gram_losses = [
+                tf.expand_dims(criterion(xf, yf), axis=-1)
+                for xf, yf in zip(target_grams, pred_grams)
+            ]
+            losses = losses + gram_losses
+
+        return losses
+
