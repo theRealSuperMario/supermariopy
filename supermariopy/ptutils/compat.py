@@ -1,5 +1,4 @@
 from supermariopy.ptutils import nn as smptnn
-import tfpyth
 import tensorflow as tf
 import warnings
 import torch
@@ -64,26 +63,6 @@ def torch_gather(params, indices):
     indices = torch_astype(indices, torch.int64)
     out = params[indices, :]
     return out
-
-
-# def torch_slice(input_, begin, size):
-#     """dirty wrapper for tf.slice to use with pytorch.
-#       https://discuss.pytorch.org/t/tensor-slice-in-pytorch/1449
-#     """
-
-#     warnings.warn("Implemted using tfpyth, thus tensorflow is called in the back")
-
-#     def func(input_):
-#         return tf.slice(input_, begin, size)
-
-#     out = tfpyth.wrap_torch_from_tensorflow(
-#         func,
-#         ["input_"],
-#         # input_shapes=[params_shape, indices_shape],
-#         # input_dtypes=[tf.float32, tf.int32],
-#     )(input_)
-#     out = out.to(input_.device)
-#     return out
 
 
 def torch_random_uniform(shape, lower, upper, dtype):
