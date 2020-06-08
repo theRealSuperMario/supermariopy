@@ -67,3 +67,59 @@ class Embedder:
             embeder.embed(_input).shape >>> (100, 100, 2)
         """
         return tf.concat([fn(inputs) for fn in self.embed_fns], -1)
+
+
+import numpy as np
+
+
+def get_positional_encodings(inputs, **kwargs):
+    r"""
+    Use this snippet for old non-eager tensorflow.
+    Calculate positional encoding :math:`\gamma`
+
+    .. math:: 
+
+        \gamma(p) = (\sin(2^{0} \pi p), \cos(2^{0} \pi p), \dots, \sin(2^{L-1} \pi p), \cos(2^{L-1} \pi p))
+
+    num_freqs is :\math: L parameter in paper
+    max_freq_log2 is :\math: L-1 parameter in paper
+    
+    kwargs = {
+        "include_input": True,
+        "input_dims": 3,
+        "max_freq_log2": 9,
+        "num_freqs": 10,
+        "log_sampling": True,
+        "periodic_fns": [tf.math.sin, tf.math.cos],
+    }
+    Examples
+    --------
+        _input = tf.ones((100, 100, 2))
+        kwargs = Embedder.get_default_kwargs()
+        get_positional_encodings(_input, **kwargs).shape >>> (100, 100, 2)
+    """
+    embed_fns = []
+    d = kwargs["input_dims"]
+    out_dim = 0
+    if kwargs["include_input"]:
+        embed_fns.append(lambda x: x)
+        out_dim += d
+
+    max_freq = kwargs["max_freq_log2"]
+    N_freqs = kwargs["num_freqs"]
+
+    if kwargs["log_sampling"]:
+        freq_bands = 2.0 ** np.linspace(0.0, max_freq, N_freqs, dtype=np.float32)
+    else:
+        freq_bands = np.linspace(2.0 ** 0.0, 2.0 ** max_freq, N_freqs, dtype=np.float32)
+
+    for freq in freq_bands:
+        for p_fn in kwargs["periodic_fns"]:
+            embed_fns.append(
+                lambda x, p_fn=p_fn, freq=freq: p_fn(x * tf.constant(freq))
+            )
+            out_dim += d
+
+    embed_fns = embed_fns
+    out_dim = out_dim
+    return tf.concat([fn(inputs) for fn in embed_fns], -1)
