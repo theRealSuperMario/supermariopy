@@ -37,4 +37,3 @@ def test_argmax_rgb():
     x, H = create_test_parts()
     m_rgb = viz.argmax_rgb(x) / 2 + 0.5
     assert m_rgb.shape == (1, H, H, 3)
-

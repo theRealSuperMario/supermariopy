@@ -95,4 +95,3 @@ class Test_denseposelib:
         remap_dict = compute_best_iou_remapping(predicted_labels, true_labels)
         remapped_labels = remap_parts(predicted_labels, remap_dict)
         assert np.all(remapped_labels == true_labels)
-

@@ -48,4 +48,3 @@ class Test_crf:
         segmentation_algorithm = SegmentationFromKeypoints(var)
         with pytest.warns(Warning):
             labels = segmentation_algorithm(img, keypoints)
-

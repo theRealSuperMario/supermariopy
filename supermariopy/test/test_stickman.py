@@ -46,3 +46,26 @@ class Test_example_joint_models:
         box_image = plotting.overlay_boxes_without_labels(joint_img, box)
         plt.imshow(box_image)
         return plt.gcf()
+
+
+class Test_Stickman3D:
+    @pytest.mark.mpl_image_compare
+    def test_plot3d(self):
+        kps = stickman.Stickman3D.get_example_pose3d()
+        joint_model = stickman.JointModelHuman36
+        fig, ax = stickman.Stickman3D.plot3d(kps, joint_model)
+        return fig
+
+    @pytest.mark.mpl_image_compare
+    def test_plot3d_world(self):
+        kps = stickman.Stickman3D.get_example_pose3d_world()
+        joint_model = stickman.JointModelHuman36
+        fig, ax = stickman.Stickman3D.plot3d(kps, joint_model)
+        return fig
+
+    @pytest.mark.mpl_image_compare
+    def test_plot3d_univ(self):
+        kps = stickman.Stickman3D.get_example_pose3d_univ()
+        joint_model = stickman.JointModelHuman36
+        fig, ax = stickman.Stickman3D.plot3d(kps, joint_model)
+        return fig

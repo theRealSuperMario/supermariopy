@@ -84,4 +84,3 @@ class Test_merge_tflog_dfs:
         import numpy as np
 
         assert [0, 1, 2] == list(np.unique(df_created.step))
-
