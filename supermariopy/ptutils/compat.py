@@ -1,5 +1,4 @@
 from supermariopy.ptutils import nn as smptnn
-import tensorflow as tf
 import warnings
 import torch
 
