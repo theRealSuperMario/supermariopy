@@ -12,7 +12,8 @@ formatting:
   stage: test
   script:
   - black --check .
-  tags: python
+  tags: 
+  - python
 
 pytest:
   stage: deploy
