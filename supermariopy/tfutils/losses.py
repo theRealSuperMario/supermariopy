@@ -334,4 +334,3 @@ class PerceptualVGG(object):
             losses = losses + gram_losses
 
         return losses
-

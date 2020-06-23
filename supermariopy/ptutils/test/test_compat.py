@@ -41,4 +41,3 @@ def test_torch_gather_nd():
     )  # get 128 x 128 image slice from each item
     out = ptcompat.torch_gather_nd(params, indices)
     assert out.shape == (4, 16, 128, 128, 3)
-
