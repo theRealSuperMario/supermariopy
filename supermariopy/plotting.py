@@ -26,6 +26,13 @@ NB_RC_PARAMS = {
     "figure.autolayout": True,
     "legend.frameon": True,
 }
+PYTEST_MPL_RC_PARAMS = {
+    "figure.figsize": [5, 3],
+    "figure.dpi": 220,
+    "figure.autolayout": True,
+    "legend.frameon": True,
+    "axes.grid": False,
+}
 BLOG_RC_PARAMS_5x4 = {
     "figure.figsize": [5, 4],
     "figure.dpi": 150,
@@ -549,6 +556,7 @@ def overlay_boxes_without_labels(
     image: np.ndarray,
     bboxes: List[np.ndarray],
     colors: Union[list, np.ndarray, None] = None,
+    linewidth: int = 1,
 ) -> np.ndarray:
     """Adds the predicted boxes on top of the image
     
@@ -578,7 +586,7 @@ def overlay_boxes_without_labels(
         box = box.astype(np.int32)
         top_left, bottom_right = list(box[:2]), list(box[2:])
         image = cv2.rectangle(
-            image, tuple(top_left), tuple(bottom_right), tuple(color), 1
+            image, tuple(top_left), tuple(bottom_right), tuple(color), linewidth
         )
 
     return image

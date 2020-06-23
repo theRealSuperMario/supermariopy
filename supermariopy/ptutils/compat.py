@@ -197,4 +197,3 @@ def torch_unravel_index(index, shape):
         out.append(index % dim)
         index = index // dim
     return tuple(reversed(out))
-

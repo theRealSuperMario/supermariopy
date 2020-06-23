@@ -717,6 +717,27 @@ def part_map_to_mu_L_inv(part_maps, scal):
     return mu, L_inv
 
 
+def probs_to_mu_sigma(probs, scal):
+    bn, n_k, h, w = probs.shape
+    y_t = ptcompat.torch_tile_nd(torch.linspace(-1.0, 1.0, h).view([h, 1]), [1, w])
+    x_t = ptcompat.torch_tile_nd(torch.linspace(-1.0, 1.0, w).view([1, w]), [h, 1])
+
+    y_t = torch.unsqueeze(y_t, dim=-1)
+    x_t = torch.unsqueeze(x_t, dim=-1)
+    meshgrid = torch.cat([y_t, x_t], dim=-1)
+    # x_t = tf.tile(tf.reshape(tf.linspace(-1.0, 1.0, w), [1, w]), [h, 1])
+    # y_t = tf.expand_dims(y_t, axis=-1)
+    # x_t = tf.expand_dims(x_t, axis=-1)
+    # meshgrid = tf.concat([y_t, x_t], axis=-1)
+
+    x_xt = torch.einsum("ijm,ijn->ijmn", meshgrid, meshgrid)
+    mu = torch.einsum("ijl,akij->akl", meshgrid, probs)
+    mu_mut = torch.einsum("akm,akn->akmn", mu, mu)
+
+    sigma = torch.einsum("ijmn,akij->akmn", x_xt, probs) - mu_mut
+    return mu, sigma
+
+
 # TODO: small funciton to calculate padding sizes
 # https://github.com/pytorch/pytorch/issues/3867
 def _get_padding(size, kernel_size, stride, dilation):
@@ -724,11 +745,18 @@ def _get_padding(size, kernel_size, stride, dilation):
     return padding
 
 
-
 def meshgrid(image_height, image_width):
-    y_coords = 2.0 * torch.arange(image_height).unsqueeze(
-        1).expand(image_height, image_width) / (image_height - 1.0) - 1.0
-    x_coords = 2.0 * torch.arange(image_width).unsqueeze(
-        0).expand(image_height, image_width) / (image_width - 1.0) - 1.0
+    y_coords = (
+        2.0
+        * torch.arange(image_height).unsqueeze(1).expand(image_height, image_width)
+        / (image_height - 1.0)
+        - 1.0
+    )
+    x_coords = (
+        2.0
+        * torch.arange(image_width).unsqueeze(0).expand(image_height, image_width)
+        / (image_width - 1.0)
+        - 1.0
+    )
 
     coords = torch.stack((y_coords, x_coords), dim=0)

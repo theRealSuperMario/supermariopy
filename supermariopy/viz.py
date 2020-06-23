@@ -65,3 +65,6 @@ def show_active_parts(
     parts = np.insert(parts, 0, background_part, axis=-1)
     parts_rgb = np.einsum("nhwp,pc->nhwc", parts, colors)
     return parts_rgb
+
+
+# TODO segmentation false color plot
