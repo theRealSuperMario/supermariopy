@@ -1,0 +1,27 @@
+image: python:3.7
+
+before_script:
+  - export PIP_CACHE_DIR="pip-cache"
+  - pip install -r requirements.txt
+
+
+stages:
+  - formatting
+  - pytest
+
+formatting:
+  stage: test
+  script:
+  - black --check .
+  tags: python
+
+pytest:
+  stage: deploy
+  script:
+    - pip install tensorflow # cpu
+    - conda install pytorch torchvision cpuonly -c pytorch # cpu
+    ./run_tests.sh
+  only:
+  - master
+  - dev
+  tags: python
