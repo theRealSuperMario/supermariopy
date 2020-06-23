@@ -23,4 +23,5 @@ pytest:
   only:
   - master
   - dev
-  tags: python
+  tags: 
+  - python
