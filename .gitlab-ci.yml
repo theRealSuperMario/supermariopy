@@ -9,14 +9,14 @@ stages:
   - pytest
 
 formatting:
-  stage: test
+  stage: formatting
   script:
   - black --check .
   tags: 
   - python
 
 pytest:
-  stage: deploy
+  stage: pytest
   script:
     - pip install tensorflow # cpu
     - conda install pytorch torchvision cpuonly -c pytorch # cpu
