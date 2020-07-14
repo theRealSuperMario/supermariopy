@@ -11,3 +11,5 @@ colorcet
 pytest-mpl
 deprecated
 black
+cython
+git+git://github.com/lucasb-eyer/pydensecrf@4d5343c398d75d7ebae34f51a47769084ba3a613#egg=pydensecrf
