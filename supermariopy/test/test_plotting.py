@@ -16,7 +16,6 @@ class Test_Plotting:
         plt.subplot(122)
         plt.imshow(np.arange(100).reshape((10, 10)))
         add_colorbars_to_axes()
-        plt.show()
         return plt.gcf()
 
     @pytest.mark.mpl_image_compare
@@ -83,6 +82,7 @@ class Test_Plotting:
         palette = plotting.get_palette(name, bytes=True)
         assert all((palette >= 0.0).ravel()) and all((palette <= 255.0).ravel())
 
+    @pytest.mark.mpl_image_compare
     def test_plot_canvas(self):
         image = np.ones((128, 128, 3), dtype=np.uint8)
         image_stack = np.stack([image * i for i in range(25)], axis=0)
@@ -92,7 +92,9 @@ class Test_Plotting:
         from supermariopy import plotting
 
         fig, ax = plotting.plot_canvas(canvas, 128, 128)
+        return fig
 
+    @pytest.mark.mpl_image_compare
     def test_plot_to_image(self):
         fig, ax = plt.subplots(1, 1, figsize=(5, 5))
         ax.plot(np.arange(10), np.arange(10))
