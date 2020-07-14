@@ -85,9 +85,9 @@ class SegmentationFromKeypoints(SegmentationAlgorithm):
 
 
 def run_crf(
-    image,
-    unary,
-    n_labels,
+    image: np.ndarray,
+    unary: np.ndarray,
+    n_labels: int,
     sxy_bilateral=80,
     srgb_bilateral=13,
     sxy_pairwise=3,
