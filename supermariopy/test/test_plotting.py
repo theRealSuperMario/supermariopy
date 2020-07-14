@@ -71,7 +71,13 @@ class Test_Plotting:
         palette = plotting.get_palette(name, bytes=True)
         assert all((palette >= 0.0).ravel()) and all((palette <= 255.0).ravel())
 
-        name = "navy"
+        name = "sns_coolwarm"
+        palette = plotting.get_palette(name, bytes=False)
+        assert all((palette >= 0.0).ravel()) and all((palette <= 1.0).ravel())
+        palette = plotting.get_palette(name, bytes=True)
+        assert all((palette >= 0.0).ravel()) and all((palette <= 255.0).ravel())
+
+        name = "plt_coolwarm"
         palette = plotting.get_palette(name, bytes=False)
         assert all((palette >= 0.0).ravel()) and all((palette <= 1.0).ravel())
         palette = plotting.get_palette(name, bytes=True)

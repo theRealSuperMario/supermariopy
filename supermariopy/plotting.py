@@ -63,16 +63,26 @@ implemented only first 12 colors
 PALETTES = ["msoffice", "navy", "custom6"]
 
 
-def get_palette(name, bytes=False):
-    """Get color palette by name. See "plotting.PALETTES" for available palettes.
-    
+def get_palette(name, n_colors=None, bytes=False, **kwargs):
+    """Get color palette by name.
+
+    Available paletts:
+    - "msoffice" : 12 categorical colors
+    - "custom6" : 6 custom categorical colors
+    - all seaborn colormaps, indicated by "sns_xxx"
+    - all matplotlib color maps, indicated by "plt_xxx"
+
     Parameters
     ----------
     name : [type]
         [description]
     bytes : bool, optional
         if True, palettes are returned as bytes, by default False
-    
+    args: 
+        arguments passed to `sns.color_palette` or `plt.cmap.xxx`
+    kwargs:
+        arguments passed to `sns.color_palette` or `plt.cmap.xxx`
+
     Returns
     -------
     np.ndarray
@@ -94,10 +104,6 @@ def get_palette(name, bytes=False):
             r"#3E6DB5",
         ]
         palette = np.array([webcolors.hex_to_rgb(c) for c in palette])
-    elif name.lower() == "navy":
-        palette = np.array(sns.light_palette("navy", reverse=False, n_colors=10 + 1))[
-            :, :3
-        ]
     elif name.lower() == "custom6":
         # blue, red, purple, green, yellow, black
         palette = [
@@ -109,17 +115,29 @@ def get_palette(name, bytes=False):
             r"#000000",
         ]
         palette = np.array([webcolors.hex_to_rgb(c) for c in palette])
+    elif name.lower().startswith("sns_"):
+        palette_name = name.lower()[4:]
+        palette = np.array(
+            sns.color_palette(palette_name, n_colors=n_colors, **kwargs)
+        )[:, :3]
+    elif name.lower().startswith("plt_"):
+        palette_name = name.lower()[4:]
+        cmap = plt.get_cmap(palette_name, **kwargs)
+        if n_colors is None:
+            n_colors = 10
+        palette = cmap(np.linspace(0, 1, n_colors))[:, :3]
+    elif name.lower().startswith("cc_"):
+        palette_name = name.lower()[3:]
+        raise NotImplementedError()
+        # cmap = cc.g(palette_name)
+        # palette = cmap(np.linspace(0, 1, n_colors))[
+        #     :, :3
+        # ]
     if bytes:
         return palette
     else:
         return palette / 255.0
 
-
-colors1 = get_palette("navy")
-colors2 = np.array(sns.light_palette("red", reverse=False, n_colors=10 + 1))[:, :3]
-colors3 = np.array(sns.light_palette("orange", reverse=False, n_colors=10 + 1))[:, :3]
-colors4 = np.array(sns.light_palette("black", reverse=False, n_colors=10 + 1))[:, :3]
-COLORS_GLASBEY_BW = cc.glasbey_bw
 
 LINESTYLE_TUPLES = [
     ("loosely dotted", (0, (1, 10))),
