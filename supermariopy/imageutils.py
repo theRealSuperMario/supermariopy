@@ -457,7 +457,6 @@ def rotate_bound(image, angle):
 # TODO: hstack with padding and vstack with padding
 
 
-
 def hstack(*tlist, padding=0):
     """ layout N, H, W, C """
     # TODO: add padding option

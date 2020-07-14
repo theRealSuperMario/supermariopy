@@ -9,6 +9,7 @@ from skimage import io
 from skimage.draw import circle, line, line_aa
 import numpy as np
 import cv2
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 
 # works for coco at least
 VUNET_JOINT_ORDER = [
@@ -345,3 +346,398 @@ def get_bounding_boxes(kps, img_size, box_size):
     box_list = [np.squeeze(b) for b in box_list]
     return box_list
 
+
+JOINT_ORDER_2 = [
+    "r_hip",
+    "r_knee",
+    "r_foot_rear",
+    "r_foot_mid",
+    "r_foot_front",
+    "l_hip",
+    "l_knee",
+    "l_foot_rear",
+    "l_foot_mid",
+    "l_foot_front",
+    "neck",
+    "nose",
+    "head",
+    "l_shoulder",
+    "l_elbow",
+    "l_wirst",
+    "l_hand",
+    "r_shoulder",
+    "r_elbow",
+    "r_wrist",
+    "r_hand",
+]
+
+
+JointModel = namedtuple(
+    "JointModel",
+    # "body right_lines left_lines head_lines face rshoulder lshoulder headup kps_to_use right_hand left_hand head_part total_relative_joints kp_to_joint kps_to_change kps_to_change_rel norm_T",
+    "body right_lines left_lines head_lines face rshoulder lshoulder headup keypoints_to_plot right_hand left_hand head_part joints_to_plot keypoint_idx_to_joint joint_to_keypoint_idx",
+)
+
+
+def reversed(forward):
+    _reversed = {v: k for k, v in forward.items()}
+    return _reversed
+
+
+# TODO overload namedtuple
+_keypoint_idx_to_joint = {
+    1: "r_hip",
+    2: "r_knee",
+    3: "r_foot_rear",
+    4: "r_foot_mid",
+    5: "r_foot_front",
+    6: "l_hip",
+    7: "l_knee",
+    8: "l_foot_rear",
+    9: "l_foot_mid",
+    10: "l_foot_front",
+    13: "neck",
+    14: "nose",
+    15: "head",
+    17: "l_shoulder",
+    18: "l_elbow",
+    19: "l_wrist",
+    22: "l_hand",
+    25: "r_shoulder",
+    26: "r_elbow",
+    27: "r_wrist",
+    30: "r_hand",
+}
+
+_joint_to_keypoint_idx = reversed(_keypoint_idx_to_joint)
+
+JointModelHuman36 = JointModel(
+    body=[1, 25, 13, 17, 6],
+    right_lines=[
+        (5, 4),
+        (4, 3),
+        (3, 2),
+        (2, 1),
+        (1, 25),
+        (25, 26),
+        (26, 27),
+        (27, 30),
+    ],
+    left_lines=[
+        (10, 9),
+        (9, 8),
+        (8, 7),
+        (7, 6),
+        (6, 17),
+        (17, 18),
+        (18, 19),
+        (19, 22),
+    ],
+    head_lines=[(13, 14), (14, 15)],
+    face=[],
+    rshoulder=25,
+    lshoulder=17,
+    headup=15,
+    keypoints_to_plot=[
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        13,
+        14,
+        15,
+        17,
+        18,
+        19,
+        22,
+        25,
+        26,
+        27,
+        30,
+    ],
+    joints_to_plot=[
+        ["r_elbow", "r_hand"],
+        ["r_shoulder", "r_elbow"],
+        ["l_shoulder", "r_shoulder"],
+        ["l_shoulder", "l_elbow"],
+        ["l_elbow", "l_hand"],
+        ["r_hip", "r_shoulder"],
+        ["l_hip", "l_shoulder"],
+        ["r_hip", "l_hip"],
+        ["r_hip", "r_knee"],
+        ["r_knee", "r_foot_mid"],
+        ["l_hip", "l_knee"],
+        ["l_knee", "l_foot_mid"],
+        ["neck", "nose"],
+        ["nose", "head"],
+    ],
+    right_hand=[19, 20],
+    left_hand=[15, 16],
+    head_part=[17, 13, 12],
+    # kp_to_joint=[
+    #     "r_hip",
+    #     "r_knee",
+    #     "r_foot_rear",
+    #     "r_foot_mid",
+    #     "r_foot_front",
+    #     "l_hip",
+    #     "l_knee",
+    #     "l_foot_rear",
+    #     "l_foot_mid",
+    #     "l_foot_front",
+    #     "neck",
+    #     "nose",
+    #     "head",
+    #     "l_shoulder",
+    #     "l_elbow",
+    #     "l_wrist",
+    #     "l_hand",
+    #     "r_shoulder",
+    #     "r_elbow",
+    #     "r_wrist",
+    #     "r_hand",
+    # ],
+    keypoint_idx_to_joint=_keypoint_idx_to_joint,
+    joint_to_keypoint_idx=_joint_to_keypoint_idx
+    # kps_to_change=[1, 2, 4, 6, 7, 9, 15, 17, 18, 22, 25, 26, 30],
+    # kps_to_change_rel=[
+    #     0,
+    #     1,
+    #     3,
+    #     5,
+    #     6,
+    #     8,
+    #     12,
+    #     13,
+    #     14,
+    #     16,
+    #     17,
+    #     18,
+    #     20,
+    # ],
+    # norm_T=[
+    #     t3p,  # head
+    #     t5p,  # body
+    #     partial(t2p, ids=[25, 26]),  # right upper arm
+    #     partial(t2p, ids=[26, 30]),  # right lower arm
+    #     partial(t2p, ids=[17, 18]),  # left upper arm
+    #     partial(t2p, ids=[18, 22]),  # left lower arm
+    #     partial(t2p, ids=[1, 2]),  # right upper leg
+    #     partial(t2p, ids=[2, 3]),  # right lower leg
+    #     partial(t2p, ids=[6, 7]),  # left upper leg
+    #     partial(t2p, ids=[7, 8]),  # left lower leg
+    # ],
+)
+
+from matplotlib import pyplot as plt
+
+
+class Stickman3D:
+    @staticmethod
+    def get_example_pose3d():
+        example_keypoints_3D = np.array(
+            [
+                [-91.679, 154.404, 907.261],
+                [-223.23566, 163.80551, 890.5342],
+                [-188.4703, 14.077106, 475.1688],
+                [-261.84055, 186.55286, 61.438915],
+                [-264.62787, 28.95641, 20.834599],
+                [-266.93124, -45.763702, 26.877338],
+                [39.877888, 145.00247, 923.98785],
+                [-11.675994, 160.89919, 484.39148],
+                [-51.550297, 220.14624, 35.834396],
+                [-40.52279, 58.267826, 22.911175],
+                [-33.55925, -16.026846, 30.447956],
+                [-91.69202, 154.39796, 907.36],
+                [-132.34781, 215.73018, 1128.8396],
+                [-97.1674, 202.34435, 1383.1466],
+                [-112.97073, 127.96946, 1477.4457],
+                [-120.03289, 190.96477, 1573.4],
+                [-97.1674, 202.34435, 1383.1466],
+                [25.895456, 192.35947, 1296.1571],
+                [107.10581, 116.050285, 1040.5062],
+                [129.8381, -48.024918, 850.94806],
+                [129.8381, -48.024918, 850.94806],
+                [56.46485, -112.51781, 872.32465],
+                [162.02069, -108.723694, 778.2846],
+                [162.02069, -108.723694, 778.2846],
+                [-97.1674, 202.34435, 1383.1466],
+                [-230.36955, 203.17923, 1311.9639],
+                [-315.40536, 164.55284, 1049.1747],
+                [-350.77136, 43.442127, 831.3473],
+                [-350.77136, 43.442127, 831.3473],
+                [-301.10486, -37.945614, 861.5011],
+                [-379.28616, -18.244892, 711.8155],
+                [-379.28616, -18.244892, 711.8155],
+            ],
+            dtype=np.float32,
+        )
+        return example_keypoints_3D
+
+    @staticmethod
+    def get_example_pose3d():
+        example_keypoints_3D = np.array(
+            [
+                [-176.73076784, -321.04861816, 5203.88206303],
+                [-52.96191118, -309.7044902, 5251.08279046],
+                [-155.64155821, 73.07175588, 5448.80702584],
+                [-29.83157265, 506.78445233, 5400.13833872],
+                [-91.64919684, 518.0979873, 5550.28395776],
+                [-119.40835667, 498.56626101, 5617.16337351],
+                [-300.49984317, -332.39276616, 5156.68125222],
+                [-258.24048857, 99.60905053, 5244.68147203],
+                [-209.48436389, 548.83382497, 5290.76367197],
+                [-284.95536665, 532.89748031, 5434.0933464],
+                [-320.98769068, 512.45266715, 5496.61273112],
+                [-176.71873095, -321.14758597, 5203.87428583],
+                [-109.15762285, -529.7281668, 5123.8906273],
+                [-140.19117593, -780.12137495, 5074.60478778],
+                [-153.18189183, -886.97613704, 5130.16533353],
+                [-118.93483197, -970.22827344, 5058.5990502],
+                [-140.19117593, -780.12137495, 5074.60478778],
+                [-259.08997397, -690.13358895, 5050.59205089],
+                [-370.67089216, -448.59930095, 5134.17726128],
+                [-462.28663516, -290.82947286, 5307.6274481],
+                [-462.28663516, -290.82947286, 5307.6274481],
+                [-420.48697021, -327.24163077, 5390.85525678],
+                [-518.00553708, -228.74555358, 5362.7729695],
+                [-518.00553708, -228.74555358, 5362.7729695],
+                [-140.19117593, -780.12137495, 5074.60478778],
+                [-19.76034113, -716.91810277, 5140.27255285],
+                [35.79161007, -470.14491849, 5257.73845884],
+                [13.89246482, -279.85293245, 5421.06854165],
+                [13.89246482, -279.85293245, 5421.06854165],
+                [-63.49624559, -321.59137006, 5468.7011777],
+                [12.12980397, -175.03984307, 5510.04796613],
+                [12.12980397, -175.03984307, 5510.04796613],
+            ],
+            dtype=np.float32,
+        )
+        return example_keypoints_3D
+
+    @staticmethod
+    def get_example_pose3d_world():
+        example_keypoints_3D = np.array(
+            [
+                [-91.679, 154.404, 907.261],
+                [-223.23566, 163.80551, 890.5342],
+                [-188.4703, 14.077106, 475.1688],
+                [-261.84055, 186.55286, 61.438915],
+                [-264.62787, 28.95641, 20.834599],
+                [-266.93124, -45.763702, 26.877338],
+                [39.877888, 145.00247, 923.98785],
+                [-11.675994, 160.89919, 484.39148],
+                [-51.550297, 220.14624, 35.834396],
+                [-40.52279, 58.267826, 22.911175],
+                [-33.55925, -16.026846, 30.447956],
+                [-91.69202, 154.39796, 907.36],
+                [-132.34781, 215.73018, 1128.8396],
+                [-97.1674, 202.34435, 1383.1466],
+                [-112.97073, 127.96946, 1477.4457],
+                [-120.03289, 190.96477, 1573.4],
+                [-97.1674, 202.34435, 1383.1466],
+                [25.895456, 192.35947, 1296.1571],
+                [107.10581, 116.050285, 1040.5062],
+                [129.8381, -48.024918, 850.94806],
+                [129.8381, -48.024918, 850.94806],
+                [56.46485, -112.51781, 872.32465],
+                [162.02069, -108.723694, 778.2846],
+                [162.02069, -108.723694, 778.2846],
+                [-97.1674, 202.34435, 1383.1466],
+                [-230.36955, 203.17923, 1311.9639],
+                [-315.40536, 164.55284, 1049.1747],
+                [-350.77136, 43.442127, 831.3473],
+                [-350.77136, 43.442127, 831.3473],
+                [-301.10486, -37.945614, 861.5011],
+                [-379.28616, -18.244892, 711.8155],
+                [-379.28616, -18.244892, 711.8155],
+            ],
+            dtype=np.float32,
+        )
+        return example_keypoints_3D
+
+    @staticmethod
+    def get_example_pose3d_univ():
+        example_keypoints_3D = np.array(
+            [
+                [-176.73076784, -321.04861816, 5203.88206303],
+                [-52.96191118, -309.7044902, 5251.08279046],
+                [-155.64155821, 73.07175588, 5448.80702584],
+                [-29.83157265, 506.78445233, 5400.13833872],
+                [-91.64919684, 518.0979873, 5550.28395776],
+                [-119.40835667, 498.56626101, 5617.16337351],
+                [-300.49984317, -332.39276616, 5156.68125222],
+                [-258.24048857, 99.60905053, 5244.68147203],
+                [-209.48436389, 548.83382497, 5290.76367197],
+                [-284.95536665, 532.89748031, 5434.0933464],
+                [-320.98769068, 512.45266715, 5496.61273112],
+                [-176.71873095, -321.14758597, 5203.87428583],
+                [-109.15762285, -529.7281668, 5123.8906273],
+                [-140.19117593, -780.12137495, 5074.60478778],
+                [-153.18189183, -886.97613704, 5130.16533353],
+                [-118.93483197, -970.22827344, 5058.5990502],
+                [-140.19117593, -780.12137495, 5074.60478778],
+                [-259.08997397, -690.13358895, 5050.59205089],
+                [-370.67089216, -448.59930095, 5134.17726128],
+                [-462.28663516, -290.82947286, 5307.6274481],
+                [-462.28663516, -290.82947286, 5307.6274481],
+                [-420.48697021, -327.24163077, 5390.85525678],
+                [-518.00553708, -228.74555358, 5362.7729695],
+                [-518.00553708, -228.74555358, 5362.7729695],
+                [-140.19117593, -780.12137495, 5074.60478778],
+                [-19.76034113, -716.91810277, 5140.27255285],
+                [35.79161007, -470.14491849, 5257.73845884],
+                [13.89246482, -279.85293245, 5421.06854165],
+                [13.89246482, -279.85293245, 5421.06854165],
+                [-63.49624559, -321.59137006, 5468.7011777],
+                [12.12980397, -175.03984307, 5510.04796613],
+                [12.12980397, -175.03984307, 5510.04796613],
+            ],
+            dtype=np.float32,
+        )
+        return example_keypoints_3D
+
+    @staticmethod
+    def plot3d(keypoints: np.array, joint_model: JointModel):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection="3d")
+        xs, ys, zs = np.split(keypoints, 3, axis=-1)
+        ax.scatter(xs, ys, zs)
+        for i, jo in enumerate(joint_model.joints_to_plot):
+            idx_0 = joint_model.joint_to_keypoint_idx[jo[0]]
+            idx_1 = joint_model.joint_to_keypoint_idx[jo[1]]
+            x0, y0, z0 = np.split(keypoints[idx_0, :], 3, axis=-1)
+            x1, y1, z1 = np.split(keypoints[idx_1, :], 3, axis=-1)
+            ax.plot(
+                np.concatenate([x0, x1], axis=0),
+                np.concatenate([y0, y1], axis=0),
+                np.concatenate([z0, z1], axis=0),
+            )
+        return fig, ax
+
+
+"""
+Problem: Images are not cropped to the shape of the person.
+
+1) We take 3D world pose and calculate axis aligned 3d box around it.
+2) we project the 3D box on every image having different viewpoints and get the cropped person.
+3) The crops will effect the intrinsic parameters of the camera (linearly):
+    Cropping essentially means increasing the focal length, because you zoom in and reduce the resolution.
+4) Adjusting the intristics: TODO
+5) We get the cropped images, the 3d world pose and the adjusted intrinsics.
+6) Each frame corresponds to one camera, so we have to rotate the 3d world pose into the local camera coordinate system.
+    We then have to apply the pose normalization.
+7) Pose normalization:
+    After rotating the the 3d pose into the local camera coordinate system it still contains information about the relative camera pose. 
+    We want to remove this by simply aligning the torso plane of the 3d keypoints, using the camera normal. 
+    This gives us the relative pose with respect to the camera, which is what we need as an additional input to the model. Hence, we need to save this!
+    After normalization we project the normalized image pose using the adjusted intrinsics. This gives us the front view of the stickman image.
+    However, the front using only the front view is not sufficient using 3d interpolation, which is why we rotate the camera by 90 degress onto the x,y,z planes.
+    Then we project again onto the y and z plane using the same adjusted intrinsics.
+"""

@@ -1,5 +1,4 @@
 from supermariopy.ptutils import nn as smptnn
-import tensorflow as tf
 import warnings
 import torch
 
@@ -197,4 +196,3 @@ def torch_unravel_index(index, shape):
         out.append(index % dim)
         index = index // dim
     return tuple(reversed(out))
-
