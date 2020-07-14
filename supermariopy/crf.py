@@ -110,3 +110,62 @@ def run_crf(
     Q = d.inference(10)
     map_ = np.argmax(Q, axis=0).reshape(image.shape[:2])
     return map_
+
+
+def process_batches(
+    t: Union[np.ndarray, np.ndarray], segmentation_algorithm: SegmentationAlgorithm
+) -> Dict:
+    """Load data from .npy file and infer segmentation
+    """
+    print("processing batches")
+    img_batch, keypoints_batch = t
+    func = functools.partial(
+        batched_keypoints_to_segments,
+        **{"segmentation_algorithm": segmentation_algorithm}
+    )
+    labels, labels_rgb, heatmaps, ims_with_keypoints = imageutils.np_map_fn(
+        lambda x: func(x[0], x[1]), (img_batch, keypoints_batch)
+    )
+    heatmaps = np.squeeze(heatmaps).astype(np.float32)
+    labels_rgb = labels_rgb.astype(np.float32)
+
+    processed_data = {
+        "labels": labels,
+        "labels_rgb": labels_rgb,
+        "heatmaps": heatmaps,
+        "ims_with_keypoints": ims_with_keypoints,
+    }
+    return processed_data
+
+
+def batched_keypoints_to_segments(
+    img: np.ndarray,
+    keypoints: np.ndarray,
+    segmentation_algorithm: SegmentationAlgorithm,
+) -> Union[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    n_keypoints = keypoints.shape[0]
+    MAP = segmentation_algorithm(img, keypoints)
+    MAP_colorized = imageutils.make_colors(
+        n_keypoints + 1, with_background=True, background_id=0
+    )[MAP]
+    heatmaps = imageutils.keypoints_to_heatmaps(
+        img.shape[:2], keypoints, segmentation_algorithm.var
+    )
+    heatmaps *= heatmaps > 0.8
+    heatmaps_rgb = imageutils.colorize_heatmaps(
+        heatmaps[np.newaxis, ...], imageutils.make_colors(n_keypoints)
+    )
+
+    img_resized = cv2.resize(img, (256, 256), cv2.INTER_LINEAR)
+    img_resized = imageutils.convert_range(img_resized, [0, 255], [0, 1])
+    im_with_keypoints = imageutils.draw_keypoint_markers(
+        img_resized,
+        keypoints,
+        marker_list=[str(i) for i in range(10)] + ["x", "o", "v", "<", ">", "*"],
+        font_scale=1,
+        thickness=4,
+    )
+    im_with_keypoints = cv2.resize(
+        im_with_keypoints, (img.shape[1], img.shape[1]), cv2.INTER_LINEAR
+    )
+    return MAP, MAP_colorized, heatmaps_rgb, im_with_keypoints
