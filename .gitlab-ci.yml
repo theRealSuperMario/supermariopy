@@ -12,8 +12,6 @@ formatting:
   stage: formatting
   script:
   - black --check .
-  tags: 
-  - python
 
 pytest:
   stage: pytest
@@ -24,5 +22,3 @@ pytest:
   only:
   - master
   - dev
-  tags: 
-  - python
