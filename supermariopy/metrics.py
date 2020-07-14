@@ -2,6 +2,7 @@ import numpy as np
 from supermariopy import numpyutils as npu
 import deprecation
 import supermariopy
+from supermariopy import denseposelib
 
 
 def compute_best_iou_remapping(predicted_labels, true_labels):
@@ -126,6 +127,30 @@ def segmentation_coverage(predicted_labels, true_labels, n_classes):
     coverage = np.sum(I, axis=axis) / np.sum(T, axis=axis)
     coverage = np.nan_to_num(coverage)
     return coverage
+
+
+def get_best_segmentation(groundtruth_segmentation, inferred_segmentation):
+    """Remap inferred segmentation onto ground truth segmentation so that it
+    matches the groundtruth_segmentation as good as possible
+
+    Parameters
+    ----------
+    groundtruth_segmentation : np.ndarray
+        Ground truth segmentation label map[N, H, W]
+
+    inferred_segmentation : np.ndarray
+        Inferred segmentation label map [N, H, W]
+    Returns
+    -------
+    np.ndarray
+        remapped inferred segmentation
+    """
+
+    best_remapping = denseposelib.compute_best_iou_remapping(
+        inferred_segmentation, groundtruth_segmentation
+    )
+    remapped_inferred = denseposelib.remap_parts(inferred_segmentation, best_remapping)
+    return remapped_inferred
 
 
 @deprecation.deprecated(
