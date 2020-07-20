@@ -9,8 +9,8 @@ Steps:
 2. hash colors
 3. run rgb2index(segmentation_rgb)
 
-Example
-
+see example below
+TODO: apparently, using cv2.LUT is much simpler (and maybe faster?)
 """
 
 
