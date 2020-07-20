@@ -1,5 +1,9 @@
 from setuptools import setup, find_packages
 
+
+with open('requirements.txt') as f:
+    required = f.read().splitlines()
+
 setup(
     name="supermariopy",
     version="0.2",
@@ -8,6 +12,6 @@ setup(
     author_email="supermario94123@gmail.com",
     license="MIT",
     packages=find_packages(),
-    install_requires=["matplotlib", "opencv-python", "numpy", "scikit-image", "scipy"],
+    install_requires=required,
     zip_safe=False,
 )
