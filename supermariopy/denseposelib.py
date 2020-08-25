@@ -1,24 +1,36 @@
-from matplotlib import pylab as plt
-import cv2
-import numpy as np
-from skimage import measure
-from scipy.ndimage.measurements import center_of_mass
-from typing import *
-import pandas as pd
-from supermariopy.pandaslib import df_empty
-import deprecation
-import supermariopy
+import warnings
+from typing import Iterable
 
-# from scipy.misc import imresize
+import cv2
+import deprecation
+import numpy as np
+import pandas as pd
+from scipy.ndimage.measurements import center_of_mass
+from skimage import measure
+
+from . import __version__, metrics
+from .pandaslib import df_empty
+
+__all__ = [
+    "load_iuv",
+    "calculate_centroids",
+    "plot_centroids",
+    "filter_parts",
+    "remap_parts",
+    "semantic_remap_dict2remap_dict",
+    "compute_iou",
+    "resize_labels",
+    "compute_best_iou_remapping",
+]
 
 
 def load_iuv(iuv_path):
     """load i,u,v channels from xxx_iuv.png image
-    
+
     Parameters
     ----------
     iuv_path : [str]
-        
+
     Returns
     -------
     np.ndarray
@@ -34,18 +46,20 @@ def load_iuv(iuv_path):
 
 
 def calculate_centroids(labels, cca=False, background=0):
-    """ 
-    Calculate centroids from label map. 
-    Maybe use connected components analysis (cca) before to get only connected labels.
-    
+    """
+    Calculate centroids from label map.
+    Maybe use connected components analysis (cca) before
+    to get only connected labels.
+
     labels : ndarray
         an array of ints giving the corresponding part labels
     cca : bool
-        if connected components analysis should be done to isolate connected label regions.
+        if connected components analysis should be done
+        to isolate connected label regions.
     background: int
         which label is considered background and therefore not calculated
 
-    returns 
+    returns
     centroids : list of array
         each array contains ints as centroid locations in pixel coordinates
     centroid_labels : list
@@ -162,11 +176,11 @@ def filter_parts(part_map, included_parts):
 def remap_parts(part_map, remap_dict):
     """
     remaps labels according to a remapping dictionary.
-        
+
     part_map : ndarray
         an array of part labels (int) for each pixel location
     remap_dict : dict
-        a dict where each key is an int giving the original part id and 
+        a dict where each key is an int giving the original part id and
         each value is an int giving the new part id
 
     returns
@@ -246,7 +260,8 @@ def semantic_remap_dict2remap_dict(semantic_remap_dict, new_part_list):
 
     semantic_remap_dict: dict
         a dictionary where each key is the new part name (e.g. "arm")
-        and each value is a list of old part names (e.g. ['left_upper_arm', 'right_upper_arm']).
+        and each value is a list of old part names
+        (e.g. ['left_upper_arm', 'right_upper_arm']).
         The list of old part names have to be from @PART_LIST.
     new_part_list : list
         the complete list of all new part names as `str`
@@ -292,7 +307,8 @@ def semantic_remap_dict2remap_dict(semantic_remap_dict, new_part_list):
 
 def compute_iou(pred, label):
     """
-    compoute iou between predicted labels and labels. IOU is also called Jaccard Similarity although this is more form the NLP domain.
+    compoute iou between predicted labels and labels.
+    IOU is also called Jaccard Similarity although this is more form the NLP domain.
 
     pred : ndarray of shape [H, W] and dtype int
         array with predicted labels
@@ -308,47 +324,46 @@ def compute_iou(pred, label):
     unique_labels = np.unique(label)
     num_unique_labels = len(unique_labels)
 
-    I = np.zeros(num_unique_labels)
-    U = np.zeros(num_unique_labels)
+    Intersection = np.zeros(num_unique_labels)
+    Union = np.zeros(num_unique_labels)
 
     for index, val in enumerate(unique_labels):
         pred_i = pred == val
         label_i = label == val
 
-        I[index] = float(np.sum(np.logical_and(label_i, pred_i)))
-        U[index] = float(np.sum(np.logical_or(label_i, pred_i)))
+        Intersection[index] = float(np.sum(np.logical_and(label_i, pred_i)))
+        Union[index] = float(np.sum(np.logical_or(label_i, pred_i)))
 
-    return I / U, unique_labels
+    return Intersection / Union, unique_labels
 
 
 @deprecation.deprecated(
     deprecated_in="0.2",
     removed_in="0.3",
-    current_version=supermariopy.__version__,
+    current_version=__version__,
     details="Use the function metrics.compute_best_iou_remapping",
 )
 def compute_best_iou_remapping(predicted_labels, true_labels):
-    from supermariopy import metrics
-
     return metrics.compute_best_iou_remapping(predicted_labels, true_labels)
 
 
 def resize_labels(labels, size):
-    """Reshape labels image to target size. 
-    
+    """Reshape labels image to target size.
+
     Parameters
     ----------
     labels : np.ndarray
-        [H, W] or [N, H, W] - shaped array where each pixel is an `int` giving a label id for the segmentation. In case of [N, H, W],
+        [H, W] or [N, H, W] - shaped array where each pixel is an `int`
+        giving a label id for the segmentation. In case of [N, H, W],
         each slice along the first dimension is treated as an independent label image.
     size : tuple of ints
         Target shape as tuple of ints
-    
+
     Returns
     -------
     reshaped_labels : np.ndarray
         [size[0], size[1]] or [N, size[0], size[1]]-shaped array
-    
+
     Raises
     ------
     ValueError
@@ -375,11 +390,11 @@ def resize_labels(labels, size):
 def calculate_iou_df(
     predicted: np.ndarray, target: np.ndarray, label_names: Iterable[str]
 ):
-    """Calculate IOUs for each (predicted, target) pair in tensor `predicted` and `target`
-    and each part in label_names.
+    """Calculate IOUs for each (predicted, target) pair in tensor `predicted` and
+    `target` and each part in label_names.
 
     Each IOU measurement is written as a line in a dataframe.
-    
+
     If a label is not present in `target`, the IOU is set to -1.
 
     Parameters
@@ -390,7 +405,7 @@ def calculate_iou_df(
         A stack of N target labels shaped [N, H, W]
     label_names : list of `str`
         list of semantic names for each label value
-    
+
     Returns
     -------
     pd.DataFrame
@@ -444,7 +459,7 @@ def calculate_overall_iou_from_df(
     """calculate overall IOU from a dataframe with IOU values.
 
     # TODO: the dataframe has to have the following layout
-    
+
     Parameters
     ----------
     df : pd.DataFrame
@@ -471,7 +486,7 @@ def calculate_overall_iou_from_df(
         print(df_mean)
         >>> batch_idx  zeros  ones  twos  threes   overall
         >>> 4.5    0.0   0.5   0.0     NaN  0.166667
-    
+
     """
 
     df_mean = df[df != -1].mean().to_frame().transpose()
@@ -486,8 +501,8 @@ def get_best_segmentation(
 ):
     """
     # TODO: document this
-    [N, H, W], [N, H, W] 
-    
+    [N, H, W], [N, H, W]
+
     --> returns [N, H, W], [N, H, W]
     """
     remapped_gt_segmentation = remap_parts(groundtruth_segmentation, dp_remap_dict)
@@ -499,8 +514,6 @@ def get_best_segmentation(
 
     return remapped_gt_segmentation, remapped_inferred
 
-
-import warnings
 
 warnings.warn("PART_DICT_ID2STR changed", Warning)
 PART_DICT_ID2STR = {
