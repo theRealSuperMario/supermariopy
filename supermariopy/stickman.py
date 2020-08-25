@@ -1,15 +1,10 @@
-import cv2
-import numpy as np
-import torch
-from torchvision.utils import make_grid
-import os.path as osp
-import random
 from collections import namedtuple
-from skimage import io
-from skimage.draw import circle, line, line_aa
-import numpy as np
+
 import cv2
+import numpy as np
+from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
+from skimage.draw import circle, line_aa
 
 # works for coco at least
 VUNET_JOINT_ORDER = [
@@ -32,7 +27,8 @@ VUNET_JOINT_ORDER = [
 
 
 class VUNetStickman:
-    """Stickman image generator according to https://github.com/CompVis/vunet/blob/master/batches.py"""
+    """Stickman image generator according to
+    https://github.com/CompVis/vunet/blob/master/batches.py"""
 
     @staticmethod
     def get_example_valid_keypoints():
@@ -103,10 +99,10 @@ class VUNetStickman:
             ("relbow", "rwrist"),
         ]
         for line in right_lines:
-            l = [jo.index(line[0]), jo.index(line[1])]
-            if np.min(joints[l]) >= 0:
-                a = tuple(np.int_(joints[l[0]]))
-                b = tuple(np.int_(joints[l[1]]))
+            joint_idx = [jo.index(line[0]), jo.index(line[1])]
+            if np.min(joints[joint_idx]) >= 0:
+                a = tuple(np.int_(joints[joint_idx[0]]))
+                b = tuple(np.int_(joints[joint_idx[1]]))
                 cv2.line(imgs[0], a, b, color=255, thickness=thickness)
 
         left_lines = [
@@ -117,10 +113,10 @@ class VUNetStickman:
             ("lelbow", "lwrist"),
         ]
         for line in left_lines:
-            l = [jo.index(line[0]), jo.index(line[1])]
-            if np.min(joints[l]) >= 0:
-                a = tuple(np.int_(joints[l[0]]))
-                b = tuple(np.int_(joints[l[1]]))
+            joint_idx = [jo.index(line[0]), jo.index(line[1])]
+            if np.min(joints[joint_idx]) >= 0:
+                a = tuple(np.int_(joints[joint_idx[0]]))
+                b = tuple(np.int_(joints[joint_idx[1]]))
                 cv2.line(imgs[1], a, b, color=255, thickness=thickness)
 
         rs = joints[jo.index("rshoulder")]
@@ -374,8 +370,14 @@ JOINT_ORDER_2 = [
 
 JointModel = namedtuple(
     "JointModel",
-    # "body right_lines left_lines head_lines face rshoulder lshoulder headup kps_to_use right_hand left_hand head_part total_relative_joints kp_to_joint kps_to_change kps_to_change_rel norm_T",
-    "body right_lines left_lines head_lines face rshoulder lshoulder headup keypoints_to_plot right_hand left_hand head_part joints_to_plot keypoint_idx_to_joint joint_to_keypoint_idx",
+    # "body right_lines left_lines head_lines face rshoulder lshoulder
+    # headup kps_to_use right_hand left_hand head_part
+    # total_relative_joints kp_to_joint kps_to_change kps_to_change_rel norm_T",
+    (
+        "body right_lines left_lines head_lines face rshoulder lshoulder "
+        "headup keypoints_to_plot right_hand left_hand head_part "
+        "joints_to_plot keypoint_idx_to_joint joint_to_keypoint_idx"
+    ),
 )
 
 
@@ -535,51 +537,48 @@ JointModelHuman36 = JointModel(
     # ],
 )
 
-from matplotlib import pyplot as plt
-
 
 class Stickman3D:
     @staticmethod
-    def get_example_pose3d():
-        example_keypoints_3D = np.array(
-            [
-                [-91.679, 154.404, 907.261],
-                [-223.23566, 163.80551, 890.5342],
-                [-188.4703, 14.077106, 475.1688],
-                [-261.84055, 186.55286, 61.438915],
-                [-264.62787, 28.95641, 20.834599],
-                [-266.93124, -45.763702, 26.877338],
-                [39.877888, 145.00247, 923.98785],
-                [-11.675994, 160.89919, 484.39148],
-                [-51.550297, 220.14624, 35.834396],
-                [-40.52279, 58.267826, 22.911175],
-                [-33.55925, -16.026846, 30.447956],
-                [-91.69202, 154.39796, 907.36],
-                [-132.34781, 215.73018, 1128.8396],
-                [-97.1674, 202.34435, 1383.1466],
-                [-112.97073, 127.96946, 1477.4457],
-                [-120.03289, 190.96477, 1573.4],
-                [-97.1674, 202.34435, 1383.1466],
-                [25.895456, 192.35947, 1296.1571],
-                [107.10581, 116.050285, 1040.5062],
-                [129.8381, -48.024918, 850.94806],
-                [129.8381, -48.024918, 850.94806],
-                [56.46485, -112.51781, 872.32465],
-                [162.02069, -108.723694, 778.2846],
-                [162.02069, -108.723694, 778.2846],
-                [-97.1674, 202.34435, 1383.1466],
-                [-230.36955, 203.17923, 1311.9639],
-                [-315.40536, 164.55284, 1049.1747],
-                [-350.77136, 43.442127, 831.3473],
-                [-350.77136, 43.442127, 831.3473],
-                [-301.10486, -37.945614, 861.5011],
-                [-379.28616, -18.244892, 711.8155],
-                [-379.28616, -18.244892, 711.8155],
-            ],
-            dtype=np.float32,
-        )
-        return example_keypoints_3D
-
+    # def get_example_pose3d():
+    #     example_keypoints_3D = np.array(
+    #         [
+    #             [-91.679, 154.404, 907.261],
+    #             [-223.23566, 163.80551, 890.5342],
+    #             [-188.4703, 14.077106, 475.1688],
+    #             [-261.84055, 186.55286, 61.438915],
+    #             [-264.62787, 28.95641, 20.834599],
+    #             [-266.93124, -45.763702, 26.877338],
+    #             [39.877888, 145.00247, 923.98785],
+    #             [-11.675994, 160.89919, 484.39148],
+    #             [-51.550297, 220.14624, 35.834396],
+    #             [-40.52279, 58.267826, 22.911175],
+    #             [-33.55925, -16.026846, 30.447956],
+    #             [-91.69202, 154.39796, 907.36],
+    #             [-132.34781, 215.73018, 1128.8396],
+    #             [-97.1674, 202.34435, 1383.1466],
+    #             [-112.97073, 127.96946, 1477.4457],
+    #             [-120.03289, 190.96477, 1573.4],
+    #             [-97.1674, 202.34435, 1383.1466],
+    #             [25.895456, 192.35947, 1296.1571],
+    #             [107.10581, 116.050285, 1040.5062],
+    #             [129.8381, -48.024918, 850.94806],
+    #             [129.8381, -48.024918, 850.94806],
+    #             [56.46485, -112.51781, 872.32465],
+    #             [162.02069, -108.723694, 778.2846],
+    #             [162.02069, -108.723694, 778.2846],
+    #             [-97.1674, 202.34435, 1383.1466],
+    #             [-230.36955, 203.17923, 1311.9639],
+    #             [-315.40536, 164.55284, 1049.1747],
+    #             [-350.77136, 43.442127, 831.3473],
+    #             [-350.77136, 43.442127, 831.3473],
+    #             [-301.10486, -37.945614, 861.5011],
+    #             [-379.28616, -18.244892, 711.8155],
+    #             [-379.28616, -18.244892, 711.8155],
+    #         ],
+    #         dtype=np.float32,
+    #     )
+    #     return example_keypoints_3D
     @staticmethod
     def get_example_pose3d():
         example_keypoints_3D = np.array(
@@ -720,24 +719,3 @@ class Stickman3D:
                 np.concatenate([z0, z1], axis=0),
             )
         return fig, ax
-
-
-"""
-Problem: Images are not cropped to the shape of the person.
-
-1) We take 3D world pose and calculate axis aligned 3d box around it.
-2) we project the 3D box on every image having different viewpoints and get the cropped person.
-3) The crops will effect the intrinsic parameters of the camera (linearly):
-    Cropping essentially means increasing the focal length, because you zoom in and reduce the resolution.
-4) Adjusting the intristics: TODO
-5) We get the cropped images, the 3d world pose and the adjusted intrinsics.
-6) Each frame corresponds to one camera, so we have to rotate the 3d world pose into the local camera coordinate system.
-    We then have to apply the pose normalization.
-7) Pose normalization:
-    After rotating the the 3d pose into the local camera coordinate system it still contains information about the relative camera pose. 
-    We want to remove this by simply aligning the torso plane of the 3d keypoints, using the camera normal. 
-    This gives us the relative pose with respect to the camera, which is what we need as an additional input to the model. Hence, we need to save this!
-    After normalization we project the normalized image pose using the adjusted intrinsics. This gives us the front view of the stickman image.
-    However, the front using only the front view is not sufficient using 3d interpolation, which is why we rotate the camera by 90 degress onto the x,y,z planes.
-    Then we project again onto the y and z plane using the same adjusted intrinsics.
-"""
