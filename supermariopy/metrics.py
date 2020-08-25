@@ -1,20 +1,20 @@
-import numpy as np
-from supermariopy import numpyutils as npu
 import deprecation
+import numpy as np
 import supermariopy
 from supermariopy import denseposelib
+from supermariopy import numpyutils as npu
 
 
 def compute_best_iou_remapping(predicted_labels, true_labels):
     """Compute best possible remapping of predictions to labels in terms of IOU.
-    
+
     Parameters
     ----------
     predicted_labels : np.ndarray of type np.int or np.uint8
         predicted segmentation labels. shaped [N, H, W]
     true_labels : np.ndarray of type np.int or np.uint8
         true segmentation labels. shaped [N, H, W]
-    
+
     Returns
     -------
     dict
@@ -29,7 +29,7 @@ def compute_best_iou_remapping(predicted_labels, true_labels):
     See also
     --------
     .. supermariopy.denseposelib.remap_parts
-    
+
     """
     unique_labels = np.unique(true_labels)
     # num_unique_labels = len(unique_labels)
@@ -59,16 +59,20 @@ def compute_best_iou_remapping(predicted_labels, true_labels):
 def segmentation_iou(predicted_labels, true_labels, n_classes=None):
     """Intersection over Union metric.
 
-    If stack of true and predicted labels is provided, will calculate IoU over entire stack, and not return mean.
-    
+    If stack of true and predicted labels is provided,
+    will calculate IoU over entire stack, and not return mean.
+
     Parameters
     ----------
     predicted_labels : np.ndarray
-        single image labels shaped [H, W] of dtype int or stack of predicted labels shaped [N, H, W]
+        single image labels shaped [H, W] of dtype int or
+        stack of predicted labels shaped [N, H, W]
     true_labels : np.ndarray
-        single image labels shaped [H, W] of dtype int or stack of true labels shaped [N, H, W]
+        single image labels shaped [H, W] of dtype int or
+        stack of true labels shaped [N, H, W]
     n_classes : int
-        number of classes for segmentation problem. if None, will use unique values from true_labels.
+        number of classes for segmentation problem.
+        If None, will use unique values from true_labels.
         Provide n_classes if not all labels occur in `true_labels`.
     Returns
     -------
@@ -80,29 +84,33 @@ def segmentation_iou(predicted_labels, true_labels, n_classes=None):
         classes = np.unique(true_labels)
     else:
         classes = np.arange(n_classes)
-    I = np.stack(
+    Intersection = np.stack(
         [(true_labels == t) & (predicted_labels == t) for t in classes], axis=-1,
     )
-    U = np.stack(
+    Union = np.stack(
         [(true_labels == t) | (predicted_labels == t) for t in classes], axis=-1,
     )
 
-    axis = tuple(list(range(len(I.shape) - 1)))
-    IoU = np.sum(I, axis=axis) / np.sum(U, axis=axis)
+    axis = tuple(list(range(len(Intersection.shape) - 1)))
+    IoU = np.sum(Intersection, axis=axis) / np.sum(Union, axis=axis)
     return IoU
 
 
 def segmentation_coverage(predicted_labels, true_labels, n_classes):
-    """ coverage is intersection over true. It is sometimes used in unsupervised learning as a calibration step.
+    """ coverage is intersection over true.
+    It is sometimes used in unsupervised learning as a calibration step.
 
     Parameters
     ----------
     predicted_labels : np.ndarray
-        single image labels shaped [H, W] of dtype int or stack of predicted labels shaped [N, H, W]
+        single image labels shaped [H, W] of dtype int
+        or stack of predicted labels shaped [N, H, W]
     true_labels : np.ndarray
-        single image labels shaped [H, W] of dtype int or stack of true labels shaped [N, H, W]
+        single image labels shaped [H, W] of dtype int
+        or stack of true labels shaped [N, H, W]
     n_classes : int
-        number of classes for segmentation problem. if None, will use unique values from true_labels.
+        number of classes for segmentation problem.
+        If None, will use unique values from true_labels.
         Provide n_classes if not all labels occur in `true_labels`.
     Returns
     -------
@@ -118,13 +126,13 @@ def segmentation_coverage(predicted_labels, true_labels, n_classes):
         classes = np.unique(true_labels)
     else:
         classes = np.arange(n_classes)
-    I = np.stack(
+    Intersection = np.stack(
         [(true_labels == t) & (predicted_labels == t) for t in classes], axis=-1
     )
-    T = np.stack([true_labels == t for t in classes], axis=-1)
+    True_labels = np.stack([true_labels == t for t in classes], axis=-1)
 
-    axis = tuple(list(range(len(I.shape) - 1)))
-    coverage = np.sum(I, axis=axis) / np.sum(T, axis=axis)
+    axis = tuple(list(range(len(Intersection.shape) - 1)))
+    coverage = np.sum(Intersection, axis=axis) / np.sum(True_labels, axis=axis)
     coverage = np.nan_to_num(coverage)
     return coverage
 
@@ -161,9 +169,9 @@ def get_best_segmentation(groundtruth_segmentation, inferred_segmentation):
 )
 def segmentation_accuracy(prediction, target, num_classes, target_is_one_hot=False):
     """return per class accuracy
-        
+
         target : , index map-style
-    
+
     Parameters
     ----------
     prediction : np.ndarray
@@ -174,7 +182,7 @@ def segmentation_accuracy(prediction, target, num_classes, target_is_one_hot=Fal
         number of classes
     target_is_one_hot : bool, optional
         if False, will perform one-hot transformation internally, by default False
-    
+
     Returns
     -------
     np.array
