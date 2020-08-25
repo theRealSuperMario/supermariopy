@@ -1,10 +1,13 @@
-# TODO: factor this out into separate class
+import functools
+from abc import ABC, abstractmethod
+from typing import Dict, Union
+
+import cv2
+import numpy as np
 import pydensecrf.densecrf as dcrf
 from pydensecrf.utils import create_pairwise_bilateral, create_pairwise_gaussian
-from abc import ABC, abstractmethod
-import numpy as np
-from typing import *
-from supermariopy import imageutils
+
+from . import imageutils
 
 # class CRF:
 # """inspired by https://gist.github.com/pesser/0ba227dd1a7b55e96b482a61cc74cad1"""
@@ -46,8 +49,6 @@ class SegmentationFromKeypoints(SegmentationAlgorithm):
 
         d = dcrf.DenseCRF(h * w, n_labels)
 
-        # flatten everything for dense crf
-
         # Set unary according to keypoints
         U = -np.log(probs_flat + 1.0e-6).astype(np.float32)
         d.setUnaryEnergy(U.copy(order="C"))
@@ -79,9 +80,6 @@ class SegmentationFromKeypoints(SegmentationAlgorithm):
         MAP = np.argmax(Q, axis=0)
         MAP = MAP.reshape((h, w))
         return MAP
-
-
-# TODO: add unary from Guided Filtering (Collins2018DeepFeatureFactorization)
 
 
 def run_crf(
