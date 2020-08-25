@@ -539,7 +539,7 @@ JointModelHuman36 = JointModel(
 
 
 class Stickman3D:
-    @staticmethod
+    # @staticmethod
     # def get_example_pose3d():
     #     example_keypoints_3D = np.array(
     #         [
