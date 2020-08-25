@@ -1,12 +1,14 @@
+import math
+import subprocess
+from typing import Callable, Iterable, Tuple
+
 import cv2
+import deprecation
 import numpy as np
-from typing import *
 from matplotlib import pyplot as plt
 from scipy.stats import multivariate_normal
-import subprocess
-import math
-import deprecation
-import supermariopy
+
+from . import __version__
 
 
 class DimensionError(ValueError):
@@ -59,7 +61,7 @@ def put_text(
     color: Tuple[int, int, int] = (-1, -1, -1),
 ) -> np.ndarray:
     """small utility function to put text into image using opencv
-    
+
     Parameters
     ----------
     img : np.ndarray
@@ -67,14 +69,15 @@ def put_text(
     text : str
         text to put in image
     loc : str, optional
-        where to put the text. one of `center`, `top`, `topleft`, `bottomleft`, `bottom`, by default "center"
+        where to put the text. one of `center`, `top`, `topleft`, `bottomleft`,
+        `bottom`, by default "center"
     font_scale : int, optional
         openCV font scale parameter. Int >= 1, by default 1
     thickness : int, optional
         openCV thickness parameter. Int >= 1, by default 1
     color : Tuple[int, int, int], optional
         openCV color parameter, by default (-1, -1, -1)
-    
+
     Returns
     -------
     np.ndarray
@@ -130,7 +133,8 @@ def make_colors(
     cmap: Callable, optional, by default plt.cm.inferno
         matplotlib colormap handle
     bytes: bool, optional, by default False
-        bytes option passed to `cmap`. Returns colors in range [0, 1] if False and range [0, 255] if True
+        bytes option passed to `cmap`.
+        Returns colors in range [0, 1] if False and range [0, 255] if True
 
     Returns
     -------
@@ -147,7 +151,7 @@ def make_colors(
 @deprecation.deprecated(
     deprecated_in="0.2",
     removed_in="0.3",
-    current_version=supermariopy.__version__,
+    current_version=__version__,
     details="Use the function plotting.draw_keypoint_markers",
 )
 def draw_keypoint_markers(
@@ -159,27 +163,31 @@ def draw_keypoint_markers(
     marker_list=["o", "v", "x", "+", "<", "-", ">", "c"],
 ) -> np.ndarray:
     """ Draw keypoints on image with markers
-    
+
     Parameters
     ----------
     img : np.ndarray
         shaped [H, W, 3] array  in range [0, 1]
     keypoints : np.ndarray
-        shaped [kp, 2] - array giving keypoint positions in range [-1, 1] for x and y. keypoints[:, 0] is x-coordinate (horizontal).
+        shaped [kp, 2] - array giving keypoint positions in range [-1, 1] for x and y.
+        keypoints[:, 0] is x-coordinate (horizontal).
     font_scale : int, optional
         openCV font scale passed to 'cv2.putText', by default 1
     thickness : int, optional
         openCV font thickness passed to 'cv2.putText', by default 2
     font : cv2.FONT_xxx, optional
         openCV font, by default cv2.FONT_HERSHEY_SIMPLEX
-    
+
     Examples
     --------
 
         from skimage import data
         astronaut = data.astronaut()
         keypoints = np.stack([np.linspace(-1, 1, 10), np.linspace(-1, 1, 10)], axis=1)
-        img_marked = draw_keypoint_markers(astronaut, keypoints, font_scale=2, thickness=3)
+        img_marked = draw_keypoint_markers(astronaut,
+                                           keypoints,
+                                           font_scale=2,
+                                           thickness=3)
         plt.imshow(img_marked)
     """
     if not is_in_range(img, [0, 1]):
@@ -233,7 +241,7 @@ def convert_range(
     -------
     np.ndarray
         rescaled array
-        
+
     Examples
     --------
         t = imageutils.convert_range(np.array([-1, 1]), [-1, 1], [0, 1])
@@ -255,11 +263,12 @@ def convert_range(
 
 def colorize_heatmaps(heatmaps: np.ndarray, colors: np.ndarray) -> np.ndarray:
     """apply color to each heatmap and sum across heatmaps
-    
+
     Parameters
     ----------
     heatmaps : np.ndarray
-        heatmaps in shape [N, H, W, C]. Each item along axis [0 and 3] is a heatmap with maximum 1 and minimum 0
+        heatmaps in shape [N, H, W, C].
+        Each item along axis [0 and 3] is a heatmap with maximum 1 and minimum 0
     colors : np.ndarray
         array with colors in shape [C, 3]. use @make_colors.
 
@@ -267,13 +276,18 @@ def colorize_heatmaps(heatmaps: np.ndarray, colors: np.ndarray) -> np.ndarray:
     -------
     np.ndarray
         colorized heatmaps in shape [N, H, W, 3]
-    
+
     Examples
     --------
         n_parts = 10
-        keypoints = np.stack([np.linspace(-1, 1, n_parts), np.linspace(-1, 1, n_parts)], axis=1)
+        keypoints = np.stack([
+            np.linspace(-1, 1, n_parts), np.linspace(-1, 1, n_parts)
+            ], axis=1)
         heatmaps = imageutils.CRF().keypoints_to_heatmaps((h, w), keypoints, var=0.01)
-        heatmaps_colorized = imageutils.colorize_heatmaps(heatmaps[np.newaxis, ...], imageutils.make_colors(n_parts))
+        heatmaps_colorized = imageutils.colorize_heatmaps(
+            heatmaps[np.newaxis, ...],
+            imageutils.make_colors(n_parts)
+        )
         plt.imshow(np.squeeze(heatmaps_colorized))
     """
     N, H, W, C = heatmaps.shape
@@ -290,9 +304,11 @@ def keypoints_to_heatmaps(
     """
     imgshape : tuple[int, int]
     keypoints : np.ndarray
-        shaped [kp, 2]. Keypoints coordinates be in range (-1, 1). keypoints[:, 0] is horizontal coordinate (x)
+        shaped [kp, 2]. Keypoints coordinates be in range (-1, 1).
+        Keypoints[:, 0] is horizontal coordinate (x)
     var : float
-        variance of blobs to create around keypoint. relative to keypoints coordinates range (-1, 1)
+        variance of blobs to create around keypoint.
+        Relative to keypoints coordinates range (-1, 1)
     outputs : [img_shape[0], img_shape[1], kp]
     """
     if not is_in_range(keypoints, [-1, 1]):
@@ -344,16 +360,16 @@ def _keypoint_to_heatmap(
 
 def tile(X, rows, cols):
     """Tile images for display.
-    
+
     Parameters
     ----------
-    X : np.ndarray
+    X: np.ndarray
         tensor of images shaped [N, H, W, C]. Images have to be in range [-1, 1]
-    rows : int
+    rows: int
         number of rows for final canvas
-    cols : int
+    cols: int
         number of rows for final canvas
-    
+
     Returns
     -------
     np.ndarray
@@ -366,8 +382,8 @@ def tile(X, rows, cols):
             if idx < X.shape[0]:
                 img = X[idx, ...]
                 tiling[
-                    i * X.shape[1] : (i + 1) * X.shape[1],
-                    j * X.shape[2] : (j + 1) * X.shape[2],
+                    i * X.shape[1] : (i + 1) * X.shape[1],  # noqa
+                    j * X.shape[2] : (j + 1) * X.shape[2],  # noqa
                     :,
                 ] = img
     return tiling
@@ -375,14 +391,14 @@ def tile(X, rows, cols):
 
 def batch_to_canvas(X, cols=None):
     """convert batch of images to canvas
-    
+
     Parameters
     ----------
     X : np.ndarray
         tensor of images shaped [N, H, W, C]. Images have to be in range [-1, 1]
     cols : int, optional
         number of columns for the final canvas, by default None
-    
+
     Returns
     -------
     np.ndarray
@@ -429,10 +445,10 @@ def hstack_paths(paths, out_path):
 
 def rotate_bound(image, angle):
     """ Pad and then rotate to prevent image cropping
-    
+
     References
     ----------
-        https://www.pyimagesearch.com/2017/01/02/rotate-images-correctly-with-opencv-and-python/
+        https://www.pyimagesearch.com/2017/01/02/rotate-images-correctly-with-opencv-and-python/  # noqa
     """
     # grab the dimensions of the image and then determine the
     # center
