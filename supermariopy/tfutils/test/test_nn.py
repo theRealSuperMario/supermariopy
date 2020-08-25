@@ -1,9 +1,9 @@
-import pytest
+import os
+
 import numpy as np
 import tensorflow as tf
-import os
-from supermariopy.tfutils import nn
 
+from ...tfutils import nn
 
 tf.enable_eager_execution()
 

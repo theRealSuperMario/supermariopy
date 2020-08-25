@@ -1,9 +1,8 @@
+from enum import Enum
+
 import tensorflow as tf
 from tensorflow import keras as tfk
-from supermariopy.tfutils import nn as smnn
 from tensorflow.keras.layers import Layer
-from tensorflow.keras import layers
-from enum import Enum
 
 
 class SPADEParamFreeNormType(Enum):
@@ -20,17 +19,20 @@ class SPADEResnetBlock(Layer):
         use_spectral_norm=False,
         spade_norm=SPADEParamFreeNormType.BATCH_NORM,
     ):
-        r"""Implementation of SPADE Residual Block. 
-        Applies SPADE on x and adds a skip. Does this two times, thus it has two SPADE blocks.
+        r"""Implementation of SPADE Residual Block.
+        Applies SPADE on x and adds a skip. Does this two times, thus it has two SPADE
+        blocks.
 
         x-->SPADE1-->SPADE2--> + --> y
         |                      |
         ---------skip-----------
 
         Each SPADE block implements a functional like f: x, segmap --> y
-        `x` is assumed to be a learned activation, which is then mapped to `y` conditioned on a spatial semantic map `segmap`.
+        `x` is assumed to be a learned activation, which is then mapped to `y`
+        conditioned on a spatial semantic map `segmap`.
 
-        If `n_channels_x_in` and `n_channels_x_out` is not the same, the skip connection is replaced by a third SPADE block.
+        If `n_channels_x_in` and `n_channels_x_out` is not the same, the skip connection
+        is replaced by a third SPADE block.
 
         Parameters
         ----------
@@ -41,7 +43,8 @@ class SPADEResnetBlock(Layer):
         use_spectral_norm : bool, optional
             not implemented yet, by default False
         spade_norm : SPADEParamFreeNormType, optional
-            which norm each SPADE block uses, by default SPADEParamFreeNormType.BATCH_NORM
+            which norm each SPADE block uses, by default
+            SPADEParamFreeNormType.BATCH_NORM
 
         Returns
         -------
@@ -55,7 +58,7 @@ class SPADEResnetBlock(Layer):
 
         References
         ----------
-        .. [1] https://github.com/NVlabs/SPADE/blob/master/models/networks/architecture.py
+        .. [1] https://github.com/NVlabs/SPADE/blob/master/models/networks/architecture.py # noqa
         .. [2] https://arxiv.org/pdf/1903.07291.pdf
         """
         super().__init__()
@@ -119,7 +122,8 @@ class SPADE(Layer):
     ):
         """SPADE operation.
         Each SPADE block implements a functional like f: x, segmap --> y
-        `x` is assumed to be a learned activation, which is then mapped to `y` conditioned on a spatial semantic map `segmap`.
+        `x` is assumed to be a learned activation, which is then mapped to `y`
+        conditioned on a spatial semantic map `segmap`.
 
         Parameters
         ----------
@@ -145,7 +149,8 @@ class SPADE(Layer):
             param_free_norm = tf.contrib.layers.instance_norm
         elif norm_type == SPADEParamFreeNormType.SYNC_BATCH_NORM:
             raise NotImplementedError
-            # param_free_norm = SynchronizedBatchNorm2d: only means that statistics are synchronized across multiple GPUs
+            # param_free_norm = SynchronizedBatchNorm2d: only means that statistics are
+            # synchronized across multiple GPUs
         elif norm_type == SPADEParamFreeNormType.BATCH_NORM:
             param_free_norm = tf.layers.batch_normalization
         else:
@@ -173,8 +178,9 @@ class SPADE(Layer):
 
 class Residual(tfk.layers.Layer):
     def __init__(self, channels_in, kernel, **kwargs):
-        """ https://sebastianwallkoetter.wordpress.com/2018/04/08/layered-layers-residual-blocks-in-the-sequential-keras-api/ 
-        
+        """
+        https://sebastianwallkoetter.wordpress.com/2018/04/08/layered-layers-residual-blocks-in-the-sequential-keras-api/ # noqa
+
         Examples
         --------
 

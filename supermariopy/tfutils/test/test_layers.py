@@ -1,10 +1,9 @@
-import pytest
 import tensorflow as tf
 
-tf.enable_eager_execution()
+from ...tfutils import layers as smlayers
+from ...tfutils import nn as smnn
 
-from supermariopy.tfutils import layers as smlayers
-from supermariopy.tfutils import nn as smnn
+tf.enable_eager_execution()
 
 
 class Test_SPADE:

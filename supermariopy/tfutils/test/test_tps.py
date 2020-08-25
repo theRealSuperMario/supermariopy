@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
-import tensorflow as tf
-import pytest
 import numpy as np
+import pytest
+import tensorflow as tf
 
 tf.enable_eager_execution()
 tf.random.set_random_seed(42)

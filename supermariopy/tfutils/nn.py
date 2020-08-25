@@ -1,6 +1,6 @@
+import albumentations as A
 import numpy as np
 import tensorflow as tf
-import tensorflow.contrib.distributions as tfd
 
 
 def shape_as_list(t):
@@ -19,117 +19,121 @@ def tf_meshgrid(h, w):
     meshgrid = meshgrid.astype(np.float32)
     return meshgrid
 
-    # def tf_hm(h, w, mu, L):
-    """
-    Returns Gaussian densitiy function based on μ and L for each batch index and part
-    L is the cholesky decomposition of the covariance matrix : Σ = L L^T
 
-    Parameters
-    ----------
-    h : int
-        heigh ot output map
-    w : int
-        width of output map
-    mu : tensor
-        mean of gaussian part and batch item. Shape [b, p, 2]. Mean in range [-1, 1] with respect to height and width
-    L : tensor
-        cholesky decomposition of covariance matrix for each batch item and part. Shape [b, p, 2, 2]
-    order:
+# def tf_hm(h, w, mu, L):
+#     """
+#     Returns Gaussian densitiy function based on μ and L for each batch index and part
+#     L is the cholesky decomposition of the covariance matrix : Σ = L L^T
 
-    Returns
-    -------
-    density : tensor
-        gaussian blob for each part and batch idx. Shape [b, h, w, p]
+#     Parameters
+#     ----------
+#     h : int
+#         heigh ot output map
+#     w : int
+#         width of output map
+#     mu : tensor
+#         mean of gaussian part and batch item. Shape [b, p, 2]. Mean in range [-1, 1]
+#         with respect to height and width.
+#     L : tensor
+#         cholesky decomposition of covariance matrix for each batch item and part.
+#         Shape [b, p, 2, 2]
+#     order:
 
-    Example
-    -------
+#     Returns
+#     -------
+#     density : tensor
+#         gaussian blob for each part and batch idx. Shape [b, h, w, p]
 
-    .. code-block:: python
+#     Example
+#     -------
 
-        from matplotlib import pyplot as plt
-        tf.enable_eager_execution()
-        import numpy as np
-        import tensorflow as tf
-        import tensorflow.contrib.distributions as tfd
+#     .. code-block:: python
 
-        # create Target Blobs
-        _means = [-0.5, 0, 0.5]
-        means = tf.ones((3, 1, 2), dtype=tf.float32) * np.array(_means).reshape((3, 1, 1))
-        means = tf.concat([means, means, means[::-1, ...]], axis=1)
-        means = tf.reshape(means, (-1, 2))
+#         from matplotlib import pyplot as plt
+#         tf.enable_eager_execution()
+#         import numpy as np
+#         import tensorflow as tf
+#         import tensorflow.contrib.distributions as tfd
 
-        var_ = 0.1
-        rho = 0.5
-        cov = [[var_, rho * var_],
-               [rho * var_, var_]]
-        scale = tf.cholesky(cov)
-        scale = tf.stack([scale] * 3, axis=0)
-        scale = tf.stack([scale] * 3, axis=0)
-        scale = tf.reshape(scale, (-1, 2, 2))
+#         # create Target Blobs
+#         _means = [-0.5, 0, 0.5]
+#         means = tf.ones((3, 1, 2), dtype=tf.float32) *
+# np.array(_means).reshape((3, 1, 1))
+#         means = tf.concat([means, means, means[::-1, ...]], axis=1)
+#         means = tf.reshape(means, (-1, 2))
 
-        mvn = tfd.MultivariateNormalTriL(
-            loc=means,
-            scale_tril=scale)
+#         var_ = 0.1
+#         rho = 0.5
+#         cov = [[var_, rho * var_],
+#                [rho * var_, var_]]
+#         scale = tf.cholesky(cov)
+#         scale = tf.stack([scale] * 3, axis=0)
+#         scale = tf.stack([scale] * 3, axis=0)
+#         scale = tf.reshape(scale, (-1, 2, 2))
 
-        h = 100
-        w = 100
-        y_t = tf.tile(tf.reshape(tf.linspace(-1., 1., h), [h, 1]), [1, w])
-        x_t = tf.tile(tf.reshape(tf.linspace(-1., 1., w), [1, w]), [h, 1])
-        y_t = tf.expand_dims(y_t, axis=-1)
-        x_t = tf.expand_dims(x_t, axis=-1)
-        meshgrid = tf.concat([y_t, x_t], axis=-1)
-        meshgrid = tf.expand_dims(meshgrid, 0)
-        meshgrid = tf.expand_dims(meshgrid, 3)  # 1, h, w, 1, 2
+#         mvn = tfd.MultivariateNormalTriL(
+#             loc=means,
+#             scale_tril=scale)
 
-        blob = mvn.prob(meshgrid)
-        blob = tf.reshape(blob, (100, 100, 3, 3))
-        blob = tf.transpose(blob, perm=[2, 0, 1, 3])
+#         h = 100
+#         w = 100
+#         y_t = tf.tile(tf.reshape(tf.linspace(-1., 1., h), [h, 1]), [1, w])
+#         x_t = tf.tile(tf.reshape(tf.linspace(-1., 1., w), [1, w]), [h, 1])
+#         y_t = tf.expand_dims(y_t, axis=-1)
+#         x_t = tf.expand_dims(x_t, axis=-1)
+#         meshgrid = tf.concat([y_t, x_t], axis=-1)
+#         meshgrid = tf.expand_dims(meshgrid, 0)
+#         meshgrid = tf.expand_dims(meshgrid, 3)  # 1, h, w, 1, 2
 
-        # Estimate mean and L
-        norm_const = np.sum(blob, axis=(1, 2), keepdims=True)
-        mu, L = nn.probs_to_mu_L(blob / norm_const, 1, inv=False)
+#         blob = mvn.prob(meshgrid)
+#         blob = tf.reshape(blob, (100, 100, 3, 3))
+#         blob = tf.transpose(blob, perm=[2, 0, 1, 3])
 
-        bn, h, w, nk = blob.get_shape().as_list()
+#         # Estimate mean and L
+#         norm_const = np.sum(blob, axis=(1, 2), keepdims=True)
+#         mu, L = nn.probs_to_mu_L(blob / norm_const, 1, inv=False)
 
-        # Estimate blob based on mu and L
-        estimated_blob = nn.tf_hm(h, w, mu, L)
+#         bn, h, w, nk = blob.get_shape().as_list()
 
-        # plot
-        fig, ax = plt.subplots(2, 3, figsize=(9, 6))
-        for b in range(len(_means)):
-            ax[0, b].imshow(np.squeeze(blob[b, ...]))
-            ax[0, b].set_title("target_blobs")
-            ax[0, b].set_axis_off()
+#         # Estimate blob based on mu and L
+#         estimated_blob = nn.tf_hm(h, w, mu, L)
 
-        for b in range(len(_means)):
-            ax[1, b].imshow(np.squeeze(estimated_blob[b, ...]))
-            ax[1, b].set_title("estimated_blobs")
-            ax[1, b].set_axis_off()
+#         # plot
+#         fig, ax = plt.subplots(2, 3, figsize=(9, 6))
+#         for b in range(len(_means)):
+#             ax[0, b].imshow(np.squeeze(blob[b, ...]))
+#             ax[0, b].set_title("target_blobs")
+#             ax[0, b].set_axis_off()
 
-    """
-    assert len(mu.get_shape().as_list()) == 3
-    assert len(L.get_shape().as_list()) == 4
-    assert mu.get_shape().as_list()[-1] == 2
-    assert L.get_shape().as_list()[-1] == 2
-    assert L.get_shape().as_list()[-2] == 2
+#         for b in range(len(_means)):
+#             ax[1, b].imshow(np.squeeze(estimated_blob[b, ...]))
+#             ax[1, b].set_title("estimated_blobs")
+#             ax[1, b].set_axis_off()
 
-    b, p, _ = mu.get_shape().as_list()
-    mu = tf.reshape(mu, (b * p, 2))
-    L = tf.reshape(L, (b * p, 2, 2))
+#     """
+#     assert len(mu.get_shape().as_list()) == 3
+#     assert len(L.get_shape().as_list()) == 4
+#     assert mu.get_shape().as_list()[-1] == 2
+#     assert L.get_shape().as_list()[-1] == 2
+#     assert L.get_shape().as_list()[-2] == 2
 
-    mvn = tfd.MultivariateNormalTriL(loc=mu, scale_tril=L)
-    y_t = tf.tile(tf.reshape(tf.linspace(-1.0, 1.0, h), [h, 1]), [1, w])
-    x_t = tf.tile(tf.reshape(tf.linspace(-1.0, 1.0, w), [1, w]), [h, 1])
-    y_t = tf.expand_dims(y_t, axis=-1)
-    x_t = tf.expand_dims(x_t, axis=-1)
-    meshgrid = tf.concat([y_t, x_t], axis=-1)
-    meshgrid = tf.expand_dims(meshgrid, 0)
-    meshgrid = tf.expand_dims(meshgrid, 3)  # 1, h, w, 1, 2
+#     b, p, _ = mu.get_shape().as_list()
+#     mu = tf.reshape(mu, (b * p, 2))
+#     L = tf.reshape(L, (b * p, 2, 2))
 
-    probs = mvn.prob(meshgrid)
-    probs = tf.reshape(probs, (h, w, b, p))
-    probs = tf.transpose(probs, perm=[2, 0, 1, 3])  # move part axis to the back
-    return probs
+#     mvn = tfd.MultivariateNormalTriL(loc=mu, scale_tril=L)
+#     y_t = tf.tile(tf.reshape(tf.linspace(-1.0, 1.0, h), [h, 1]), [1, w])
+#     x_t = tf.tile(tf.reshape(tf.linspace(-1.0, 1.0, w), [1, w]), [h, 1])
+#     y_t = tf.expand_dims(y_t, axis=-1)
+#     x_t = tf.expand_dims(x_t, axis=-1)
+#     meshgrid = tf.concat([y_t, x_t], axis=-1)
+#     meshgrid = tf.expand_dims(meshgrid, 0)
+#     meshgrid = tf.expand_dims(meshgrid, 3)  # 1, h, w, 1, 2
+
+#     probs = mvn.prob(meshgrid)
+#     probs = tf.reshape(probs, (h, w, b, p))
+#     probs = tf.transpose(probs, perm=[2, 0, 1, 3])  # move part axis to the back
+#     return probs
 
 
 def tf_hm(P, h, w, stddev, exp=True):
@@ -157,8 +161,10 @@ def tf_hm(P, h, w, stddev, exp=True):
         W = 20
         parts = 2
         means = np.array([[10, 10], [10, 15]], dtype=np.float32) # means in [0, H] space
-        means = ( means - np.array([H, W]) / 2 ) / np.array([H, W]) # means in [-1, 1] space
-        variances = np.array([[3, 1], [1, 3]], dtype=np.float32) / ((np.array([H, W]) / 2)) # variance in [-1, 1] space
+        means = ( means - np.array([H, W]) / 2 ) / np.array([H, W])
+        # means in [-1, 1] space
+        variances = np.array([[3, 1], [1, 3]], dtype=np.float32) /
+        ((np.array([H, W]) / 2)) # variance in [-1, 1] space
         variances = tf.reshape(variances, (1, 2, 2))
         points = tf.reshape(means, (1, 2, 2))
         points = tf.concat([points] * B, 0)
@@ -189,12 +195,14 @@ def tf_hm(P, h, w, stddev, exp=True):
 
 class EMA(tf.keras.Model):
     def __init__(self, decay=0.99):
-        """https://stackoverflow.com/questions/40919706/updating-variable-values-in-tensorflow/40920104
+        """
+        https://stackoverflow.com/questions/40919706/updating-variable-values-in-tensorflow/40920104 # noqa
 
-        Add ema to model so that the state of the values is saved and restored in the checkpoint.
+        Add ema to model so that the state of the values is saved and restored in the
+        checkpoint.
 
         Intended for use with tf eager
-        
+
         Parameters
         ----------
         decay : float, optional
@@ -302,7 +310,7 @@ class FullLatentDistribution(object):
 
     def kl(self, other=None):
         if other is not None:
-            raise NotImplemented("Only KL to standard normal is implemented.")
+            raise NotImplementedError("Only KL to standard normal is implemented.")
 
         delta = tf.square(self.mean)
         diag_covar = tf.reduce_sum(tf.square(self.L), axis=2)
@@ -327,7 +335,7 @@ class MeanFieldDistribution(object):
         self.batch_size = ps[0]
         self.event_axes = [1, 2, 3]
 
-        event_dim = self.dim
+        self.event_dim = self.dim
         self.mean = self.parameters
         self.shape = tf.shape(self.mean)
 
@@ -360,16 +368,20 @@ def probs_to_mu_sigma(probs):
     Parameters
     ----------
     probs: tensor
-        tensor of shape [b, h, w, k] where each channel along axis 3 is interpreted as an unnormalized probability density.
+        tensor of shape [b, h, w, k] where each channel along axis 3 is interpreted as
+        an unnormalized probability density.
     scaling_factor : tensor
-        tensor of shape [b, 1, 1, k] representing normalizing the normalizing constant of the density
+        tensor of shape [b, 1, 1, k] representing normalizing the normalizing constant
+        of the density
 
     Returns
     -------
     mu : tensor
-        tensor of shape [b, k, 2] representing partwise mean coordinates of x and y for each item in the batch
+        tensor of shape [b, k, 2] representing partwise mean coordinates of x and y for
+        each item in the batch
     sigma : tensor
-        tensor of shape [b, k, 2, 2] representing covariance matrix for each item in the batch
+        tensor of shape [b, k, 2, 2] representing covariance matrix for each item in the
+        batch
 
     Example
     -------
@@ -383,7 +395,9 @@ def probs_to_mu_sigma(probs):
         nk,
     ) = (
         probs.get_shape().as_list()
-    )  # todo instead of calulating sequrity measure from amplitude one could alternativly calculate it by letting the network predict a extra paremeter also one could do
+    )  # TODO instead of calulating sequrity measure from amplitude one could
+    # alternatively calculate it by letting the network predict a extra paremeter
+    # also one could do
     y_t = tf.tile(tf.reshape(tf.linspace(-1.0, 1.0, h), [h, 1]), [1, w])
     x_t = tf.tile(tf.reshape(tf.linspace(-1.0, 1.0, w), [1, w]), [h, 1])
     y_t = tf.expand_dims(y_t, axis=-1)
@@ -402,8 +416,6 @@ def probs_to_mu_sigma(probs):
     return mu, sigma
 
 
-import albumentations as A
-
 T_alpha = A.Compose(
     [
         A.RandomBrightness(p=1),
@@ -414,7 +426,7 @@ T_alpha = A.Compose(
 )
 
 
-T_pi = A.Compose([A.HorizontalFlip(p=1), A.ShiftScaleRotate(p=1),])
+T_pi = A.Compose([A.HorizontalFlip(p=1), A.ShiftScaleRotate(p=1)])
 
 
 def part_map_to_mu_L_inv(part_maps, scal):
@@ -443,7 +455,8 @@ def part_map_to_mu_L_inv(part_maps, scal):
 
     a = tf.sqrt(
         a_sq + eps
-    )  # Σ = L L^T Prec = Σ^-1  = L^T^-1 * L^-1  ->looking for L^-1 but first L = [[a, 0], [b, c]
+    )  # Σ = L L^T Prec = Σ^-1  = L^T^-1 * L^-1  ->looking for L^-1 but first
+    # L = [[a, 0], [b, c]
     b = a_b / (a + eps)
     c = tf.sqrt(b_sq_add_c_sq - b ** 2 + eps)
     z = tf.zeros_like(a)

@@ -1,31 +1,30 @@
-"""Code from 
+from typing import List
+
+import numpy as np
+import tensorflow as tf
+from tensorflow.contrib.keras.api.keras import backend as K
+from tensorflow.contrib.keras.api.keras.applications.vgg19 import VGG19
+from tensorflow.contrib.keras.api.keras.models import Model
+
+from ..tfutils import image
+
+
+"""
+In part from
 https://github.com/pesser/edflow/blob/dev/edflow/applications/tf_perceptual_loss.py
 """
-
-import tensorflow as tf
-import numpy as np
-
-# vgg19 from keras
-from tensorflow.contrib.keras.api.keras.models import Model
-from tensorflow.contrib.keras.api.keras.applications.vgg19 import VGG19
-
-# TODO: test if keras VGG19 gives same results as pytorch VGG19
-from tensorflow.contrib.keras.api.keras import backend as K
-from typing import *
-
-from supermariopy.tfutils import image
 
 
 def _ll_loss(target, reconstruction, log_variance, calibrate):
     dim = np.prod(target.shape.as_list()[1:])
     variance = tf.exp(log_variance)
     log2pi = np.log(2.0 * np.pi)
-    e = tf.reduce_mean(tf.square(target - reconstruction))
-    l = 0.5 * dim * (e / variance + log_variance + log2pi)
-    if calibrate:
-        calibrate_op = tf.assign(log_variance, tf.log(e))
-    else:
-        calibrate_op = tf.no_op()
+    e = tf.reduce_mean(tf.square(target - reconstruction))  # noqa
+    l = 0.5 * dim * (e / variance + log_variance + log2pi)  # noqa
+    # if calibrate:
+    #     calibrate_op = tf.assign(log_variance, tf.log(e))
+    # else:
+    #     calibrate_op = tf.no_op()
     return l, calibrate
 
 
@@ -54,9 +53,9 @@ class VGG19Features(object):
                 "block4_conv2",
                 "block5_conv2",
             ]
-        self.layer_names = [l.name for l in self.base_model.layers]
+        self.layer_names = [layer.name for layer in self.base_model.layers]
         for k in feature_layers:
-            if not k in self.layer_names:
+            if k not in self.layer_names:
                 raise KeyError(
                     "Invalid layer {}. Available layers: {}".format(k, self.layer_names)
                 )
@@ -87,8 +86,6 @@ class VGG19Features(object):
         """y should be rgb tensors in [-1, 1]. This function is just used for testing"""
         if self.original_scale:
             x = tf.image.resize_bilinear(x, [256, 256])
-            bs = tf.shape(x)[0]
-            # x = tf.random_crop(xy, [bs, 224, 224, 3])
             x = x[:, 16:239, 16:239, :]
 
         x = self.preprocess_input(x)
@@ -248,9 +245,9 @@ class PerceptualVGG(object):
     def __init__(
         self,
         vgg,
-        feature_weights=[1.0,] * 6,
+        feature_weights=[1.0] * 6,
         use_gram=False,
-        gram_weights=[0.1,] * 6,
+        gram_weights=[0.1] * 6,
         eager=False,
         session=None,
     ):
@@ -271,9 +268,9 @@ class PerceptualVGG(object):
             pass
         else:
             K.set_session(session)
-        self.layer_names = [l.name for l in self.vgg.layers]
+        self.layer_names = [layer.name for layer in self.vgg.layers]
         for k in self.target_layers:
-            if not k in self.layer_names:
+            if k not in self.layer_names:
                 raise KeyError(
                     "Invalid layer {}. Available layers: {}".format(k, self.layer_names)
                 )
@@ -311,7 +308,7 @@ class PerceptualVGG(object):
 
     def loss(self, target: tf.Tensor, pred: tf.Tensor):
         VGGOutput = self.target_layers
-        weights = self.feature_weights
+        # weights = self.feature_weights
         target_feats = self.forward(target)
         target_feats = [target_feats[k] for k in VGGOutput]
         pred_feats = self.forward(pred)

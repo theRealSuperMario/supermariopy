@@ -1,13 +1,14 @@
+import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
-from supermariopy.tfutils import nn
-import numpy as np
-from supermariopy import imageutils
+
+from .. import imageutils
+from ..tfutils import nn
 
 
 def argmax_rgb(m, cmap=plt.cm.viridis):
     """Take argmax of m along dimension 1 and apply RGB colorcode on it
-    
+
     Parameters
     ----------
     m : tf.Tensor

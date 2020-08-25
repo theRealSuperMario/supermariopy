@@ -1,7 +1,9 @@
 import tensorflow as tf
 
+
 """
-Code adapted from https://github.com/CompVis/unsupervised-disentangling - but with more documentation
+Code adapted from https://github.com/CompVis/unsupervised-disentangling -
+but with more documentation
 """
 
 
