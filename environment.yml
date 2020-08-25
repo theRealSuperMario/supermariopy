@@ -175,4 +175,3 @@ dependencies:
     - webcolors==1.11.1
     - werkzeug==1.0.1
     - wrapt==1.12.1
-prefix: /Users/sandrobraun/miniconda3/envs/supermariopy

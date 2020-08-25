@@ -18,10 +18,10 @@ jobs:
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
         echo $CONDA
-        $CONDA/bin/conda env update --file environment.yml --name base
+        $CONDA/bin/conda env create --file environment.yml --name supermariopy
         $CONDA/bin/conda init bash
     - name: Test with pytest
       run: |
-        $CONDA/bin/conda activate base
+        $CONDA/bin/conda activate supermariopy
         chmod +x ./run_tests.sh
         ./run_tests.sh
