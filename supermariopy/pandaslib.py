@@ -3,8 +3,8 @@ from sklearn.model_selection import train_test_split
 
 
 def listify_dict(dict_):
-    """Takes a dictionary and replaces all non-list values with a list 
-    with same length as the rest of the list values. 
+    """Takes a dictionary and replaces all non-list values with a list
+    with same length as the rest of the list values.
     If not list is present in the dict, every value will be turned
     into a list of length 1.
     This function is useful to convert dicts in pandas dataframe compatible dictionaries
@@ -13,14 +13,15 @@ def listify_dict(dict_):
     ----------
     dict_ : dict
         dictionary with list and non-list elements
-    
+
     Returns
     -------
     dict
-        dictionary with new elements. Lists are copied from input dict_. 
+        dictionary with new elements. Lists are copied from input dict_.
         Non-list elements are replaced with lists of same length as list elements
-        containint the non-list elements duplicated as often as the length of the list elements.
-    
+        containint the non-list elements duplicated as often as the length of the list
+        elements.
+
     Raises
     ------
     ValueError
@@ -63,8 +64,9 @@ def listify_dict(dict_):
 
 
 def unnest_dict(dict_, join_subkeys=True, subkey_sep="_"):
-    """Takes a nested dictionary structure and unpacks the inner dictionaries into the topmost dictionary.
-    
+    """Takes a nested dictionary structure and unpacks the inner dictionaries into the
+    topmost dictionary.
+
     This is useful when working with recursively nested
     dict structures and the goal is to convert them to a DataFrame.
 
@@ -74,12 +76,14 @@ def unnest_dict(dict_, join_subkeys=True, subkey_sep="_"):
         the nested dictionary structure to transform
     join_subkeys : bool, optional
         if the key from the partent level should be joined to the child level key.
-        For example : {"test" : {"1" : 2, "3" : 4}} will result in {"test_1" : 2, "test_3" : 4} if join_subkeys is True.
-        If False, the keys from the children will be taken. This could overwrite parrent elements in the worst case.
-        By default True. 
+        For example : {"test" : {"1" : 2, "3" : 4}} will result in
+        {"test_1" : 2, "test_3" : 4} if join_subkeys is True.
+        If False, the keys from the children will be taken.
+        This could overwrite parrent elements in the worst case.
+        By default True.
     subkey_sep : str, optional
         the seperating character to use for joining subkeys. By default "_".
-    
+
     Returns
     -------
     dict
@@ -94,7 +98,7 @@ def unnest_dict(dict_, join_subkeys=True, subkey_sep="_"):
 
         # create dataframe from old dict results in dict becoming a value in the table
         df1 = pd.DataFrame(dict_)
-        
+
         # creating dataframe from new dict results a nice tabular dataframe
         df = pd.DataFrame(listify_dict(new_dict))
     """
@@ -123,7 +127,7 @@ def unnest_dict(dict_, join_subkeys=True, subkey_sep="_"):
 
 def df_empty(columns, dtypes=None, index=None):
     """create empty dataframe from column names and specified dtypes
-    
+
     Parameters
     ----------
     columns : list
@@ -132,7 +136,7 @@ def df_empty(columns, dtypes=None, index=None):
         list of dtypes for each column
     index : bool, optional
         [description], by default None
-    
+
     Returns
     -------
     df
@@ -144,11 +148,12 @@ def df_empty(columns, dtypes=None, index=None):
         print(list(df.dtypes)) # int64, int64
 
         df = df_empty(['a', 'b'], dtypes=None)
-        print(list(df.dtypes)) # float64, float64        
+        print(list(df.dtypes)) # float64, float64
 
     References
     ----------
-        Shamelessly copied from https://stackoverflow.com/questions/36462257/create-empty-dataframe-in-pandas-specifying-column-types
+        Shamelessly copied from
+        https://stackoverflow.com/questions/36462257/create-empty-dataframe-in-pandas-specifying-column-types # noqa
     """
     if dtypes is None:
         dtypes = [None] * len(columns)
@@ -163,7 +168,7 @@ def df_empty(columns, dtypes=None, index=None):
 
 def instance_level_split(df, column_name, random_seed=None, test_size=0.2):
     """split rows of dataframe on instance level (grouped by colum_name)
-    
+
     Parameters
     ----------
     df : pd.DataFrame
