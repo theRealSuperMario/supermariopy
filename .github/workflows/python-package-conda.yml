@@ -1,4 +1,4 @@
-name: Python Package using Conda
+name: CI
 
 on: [push]
 
@@ -9,16 +9,19 @@ jobs:
       max-parallel: 5
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v1
     - name: Set up Python 3.8
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v1
       with:
         python-version: 3.8
     - name: Install dependencies
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
+        echo $CONDA
         $CONDA/bin/conda env update --file environment.yml --name base
+        $CONDA/bin/conda init bash
     - name: Test with pytest
       run: |
+        $CONDA/bin/conda activate base
         chmod +x ./run_tests.sh
         ./run_tests.sh
