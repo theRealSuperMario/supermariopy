@@ -1,19 +1,17 @@
-import numpy as np
-from matplotlib import pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+import io
 import math
-from typing import *
-import seaborn as sns
-import cv2
-from supermariopy import imageutils
-from typing import *
-
-# https://github.com/ubernostrum/webcolors
-import webcolors
+from typing import List, Union
 
 import colorcet as cc
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+import webcolors
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-# https://colorcet.pyviz.org/user_guide/Categorical.html
+from . import imageutils
+from .imageutils import RangeError
 
 
 def set_style():
@@ -85,7 +83,7 @@ def get_palette(name, n_colors=None, bytes=False, **kwargs):
         [description]
     bytes : bool, optional
         if True, palettes are returned as bytes, by default False
-    args: 
+    args:
         arguments passed to `sns.color_palette` or `plt.cmap.xxx`
     kwargs:
         arguments passed to `sns.color_palette` or `plt.cmap.xxx`
@@ -165,14 +163,14 @@ LINESTYLE_TUPLES = [
 def imageStack_2_subplots(image_stack, axis=0):
     """utility function to plot a stack of images into a grid of subplots
 
-    
+
     Parameters
     ----------
     image_stack : np.ndarray
         stack of images [N, H, W, C]
     axis : int, optional
         axis of image_stack along which to make subplots, by default 0
-    
+
     Returns
     -------
     fig
@@ -206,13 +204,14 @@ def add_colorbars_to_axes(
     axes=None, mappables=None, loc="right", size="5%", pad=0.05, **kwargs
 ):
     """add colorbars to each axis in the current figures list of axes
-    
+
     Parameters
     ----------
     axes : list, optional
         list of axes. Will use all axes from current figure if None, by default None
     mappables : list, optional
-        list of mappables to get cmap from, e.g. m = ax.imshow()... will use ax.images if not given
+        list of mappables to get cmap from, e.g. m = ax.imshow()
+        will use ax.images if not given
     loc : str, optional
         where to put colorbar, by default "right"
     size : str, optional
@@ -284,14 +283,14 @@ def change_fontsize(ax, fs):
     - ax.yaxis.label
     - ax.get_xticklabels()
     - ax.get_yticklabels()
-    
+
     Parameters
     ----------
     ax : mpl.axis
         [description]
     fs : float
         new font size
-    
+
     Returns
     -------
     ax
@@ -315,18 +314,18 @@ def change_fontsize(ax, fs):
 
 def change_linewidth(ax, lw=3):
     """change linewidth for each line plot in given axis
-    
+
     Parameters
     ----------
     ax : mpl.axis
         axis to change fontsize of
     lw : float, optional
         [description], by default 3
-    
+
     Returns
     -------
     ax
-        mpl.axis 
+        mpl.axis
 
     Examples
     --------
@@ -343,9 +342,11 @@ def change_linewidth(ax, lw=3):
 
 
 def smooth(scalars, weight):
-    """Smooth scalar array using some weight between [0, 1]. This is the tensorboard implementation
-    
-    For comparison with @ewma, see https://github.com/theRealSuperMario/notebook_collection
+    """Smooth scalar array using some weight between [0, 1].
+    This is the tensorboard implementation
+
+    For comparison with @ewma, see
+    https://github.com/theRealSuperMario/notebook_collection
 
     Parameters
     ----------
@@ -353,7 +354,7 @@ def smooth(scalars, weight):
         array of scalars
     weight : float between 0, 1
         amount of smoothing
-    
+
     Returns
     -------
     np.array
@@ -373,10 +374,12 @@ def smooth(scalars, weight):
 
 def ewma(x, alpha):
     """
-    copied from https://stackoverflow.com/questions/42869495/numpy-version-of-exponential-weighted-moving-average-equivalent-to-pandas-ewm
+    copied from
+    https://stackoverflow.com/questions/42869495/numpy-version-of-exponential-weighted-moving-average-equivalent-to-pandas-ewm # noqa
     Returns the exponentially weighted moving average of x.
 
-    For comparison with @smooth, see https://github.com/theRealSuperMario/notebook_collection
+    For comparison with @smooth, see
+    https://github.com/theRealSuperMario/notebook_collection # noqa
 
     Parameters:
     -----------
@@ -415,27 +418,30 @@ def draw_keypoint_markers(
     marker_list=["o", "v", "x", "+", "<", "-", ">", "c"],
 ) -> np.ndarray:
     """ Draw keypoints on image with markers
-    
+
     Parameters
     ----------
     img : np.ndarray
         shaped [H, W, 3] array  in range [0, 1]
     keypoints : np.ndarray
-        shaped [kp, 2] - array giving keypoint positions in range [-1, 1] for x and y. keypoints[:, 0] is x-coordinate (horizontal).
+        shaped [kp, 2] - array giving keypoint positions in range [-1, 1] for x and y.
+        Keypoints[:, 0] is x-coordinate (horizontal).
     font_scale : int, optional
         openCV font scale passed to 'cv2.putText', by default 1
     thickness : int, optional
         openCV font thickness passed to 'cv2.putText', by default 2
     font : cv2.FONT_xxx, optional
         openCV font, by default cv2.FONT_HERSHEY_SIMPLEX
-    
+
     Examples
     --------
-
         from skimage import data
         astronaut = data.astronaut()
         keypoints = np.stack([np.linspace(-1, 1, 10), np.linspace(-1, 1, 10)], axis=1)
-        img_marked = draw_keypoint_markers(astronaut, keypoints, font_scale=2, thickness=3)
+        img_marked = draw_keypoint_markers(astronaut,
+                                            keypoints,
+                                            font_scale=2,
+                                            thickness=3)
         plt.imshow(img_marked)
     """
     if not imageutils.is_in_range(img, [0, 1]):
@@ -474,8 +480,9 @@ def draw_keypoint_markers(
 
 
 def plot_canvas(canvas, delta_x, delta_y, show_grid=True, fig=None, ax=None):
-    """plot a grid of images arranged in a canvas as obtained by `imageutils.batch_to_canvas` into the provided `ax` 
-    
+    """plot a grid of images arranged in a canvas as obtained by
+    `imageutils.batch_to_canvas` into the provided `ax`
+
     Parameters
     ----------
     canvas : np.ndarray
@@ -490,7 +497,7 @@ def plot_canvas(canvas, delta_x, delta_y, show_grid=True, fig=None, ax=None):
         if None, will create figure, by default None
     ax : mpl axes, optional
         if None, will create axes, by default None
-    
+
     Returns
     -------
     mpl figure
@@ -517,16 +524,10 @@ def plot_canvas(canvas, delta_x, delta_y, show_grid=True, fig=None, ax=None):
     return fig, ax
 
 
-import matplotlib.pyplot as plt
-
-
-import io
-import cv2
-
-
 def figure_to_image(figure):
     """Converts the matplotlib plot specified by 'figure' to a PNG image and
-    returns it. The supplied figure is closed and inaccessible after this call."""
+    returns it. The supplied figure is closed and inaccessible after this call.
+    """
     # Save the plot to a PNG in memory.
     buf = io.BytesIO()
     plt.savefig(buf, format="png")
@@ -546,7 +547,7 @@ def figure_to_image(figure):
 def plot_bars(
     m, xticks=None, xticklabels=None, ylim=[0, 1], figsize=(5, 5), colors=None
 ):
-    """ 
+    """
         Barplot of an array shaped [N, ] with labels xticklabels on y axis
         figsize (width, height)
     """
@@ -554,7 +555,8 @@ def plot_bars(
     if xticks is None:
         xticks = np.arange(len(m))
     if colors is None:
-        colors = cc.glasbey_light[1 : (len(m) + 1)]  # no white foreground
+        end_ = len(m) + 1
+        colors = cc.glasbey_light[1:end_]  # no white foreground
 
     ax.bar(xticks, m, color=colors)
     ax.set_xticks(xticks)
@@ -577,16 +579,18 @@ def overlay_boxes_without_labels(
     linewidth: int = 1,
 ) -> np.ndarray:
     """Adds the predicted boxes on top of the image
-    
+
     Parameters
     ----------
     image : np.ndarray
         an image as returned by OpenCV
     bboxes : List[np.ndarray]
-        list of bounding box coordinates. Each bounding box is an np.array of shape 4 with [xmin, ymin, xmax ymax]
+        list of bounding box coordinates. Each bounding box is an np.array of shape 4
+        with [xmin, ymin, xmax ymax]
     colors : Union[list, np.ndarray, None], optional
-        optional list of colors to choose for bounding box overlay, by default will only use red, by default None
-    
+        optional list of colors to choose for bounding box overlay, by default will
+        only use red, by default None
+
     Returns
     -------
     np.ndarray
