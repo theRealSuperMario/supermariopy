@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from . import imageutils
+from . import imageutils, numpyutils
 
 
 def argmax_rgb(m, cmap=plt.cm.viridis):
@@ -25,7 +25,7 @@ def argmax_rgb(m, cmap=plt.cm.viridis):
     argmax_map = np.argmax(m, axis=-1)
     colors = imageutils.make_colors(P, cmap=cmap)
     colors = colors.astype(np.float32)
-    m_one_hot = imageutils.one_hot(argmax_map, P, axis=-1)
+    m_one_hot = numpyutils.one_hot(argmax_map, P, axis=-1)
     mask_rgb = np.einsum("bhwp,pc->bhwc", m_one_hot, colors)
     return mask_rgb
 
