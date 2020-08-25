@@ -1,10 +1,11 @@
-from typing import *
+from typing import Callable, Tuple
+
 import numpy as np
 
 
 def one_hot(a, num_classes, axis=-1):
     """numpy equivalent of tf.one_hot
-    
+
     Parameters
     ----------
     a : np.ndarray
@@ -13,7 +14,7 @@ def one_hot(a, num_classes, axis=-1):
         number of classes for one-hot representation
     axis : int, optional
         along which axis to make one_hot, by default -1
-    
+
     Returns
     -------
     array
@@ -40,13 +41,13 @@ def np_map_fn(func: Callable, data: Tuple) -> Tuple:
     # TODO: fails when tuple has length 1
 
     Similar to tf.map_fn
-    
+
     Parameters
     ----------
     func : Callable
         function to map to the items in data
     data : Tuple[np.ndarray]
-        
+
     Returns
     -------
     Tuple[np.ndarray]
