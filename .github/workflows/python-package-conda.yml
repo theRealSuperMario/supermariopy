@@ -10,16 +10,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - name: Set up Python 3.8
+    - name: Set up Python 3.7
       uses: actions/setup-python@v1
       with:
-        python-version: 3.8
+        python-version: 3.7
     - name: Install dependencies
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA
         $CONDA/bin/conda env create --file environment.yml --name supermariopy
         $CONDA/bin/conda init bash
+        $CONDA/bin/conda activate
+        pip install pydensecrf
     - name: Test with pytest
       run: |
         $CONDA/bin/conda activate supermariopy
