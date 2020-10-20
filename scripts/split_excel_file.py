@@ -22,13 +22,17 @@ def main(filename, target_dir):
     Example:
     - Assume excel file "balance.xlsx" with sheets "2018", "2019", "2020".
     - Run `split_excel_file.py balance.xlsx .`
-    - You then have "balance_2018.xlsx", "balance_2019.xlsx", "balance_2020.xlsx" as
+    - You then have "balance_2018.xls", "balance_2019.xls", "balance_2020.xls" as
     new files.
 
-    Also works with ".xls" extension (extension is preserved).
+    Note:
+    - Due to limited support of `xlwt` for excel file format compatibility, it is only
+     possible to output ".xls" files.
+     However, the input files can be ".xlsx" from more recent excel versions.
+    - See https://pypi.org/project/xlwt/
     """
     f = filename
-    wb = xlrd.open_workbook(f, on_demand=True)
+    wb = xlrd.open_workbook(f, on_demand=False)
     for sheet in wb.sheets():  # cycles through each sheet in each workbook
         newwb = copy(wb)  # makes a temp copy of that book
         newwb._Workbook__worksheets = [
@@ -38,6 +42,7 @@ def main(filename, target_dir):
         ]
         # brute force, strips away all other sheets apart from the sheet being looked at
         basename, extension = os.path.splitext(os.path.basename(f))
+        extension = ".xls"
         savename = os.path.join(
             target_dir, "{}_{}{}".format(basename, sheet.name, extension)
         )
