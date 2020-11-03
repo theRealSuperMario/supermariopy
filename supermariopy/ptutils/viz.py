@@ -1,14 +1,13 @@
-from supermariopy import imageutils
-from supermariopy import ptutils
-from supermariopy.ptutils import nn as ptnn
-from matplotlib import pyplot as plt
-import torch
 import numpy as np
+import torch
+from matplotlib import pyplot as plt
+from supermariopy import imageutils, ptutils
+from supermariopy.ptutils import nn as ptnn
 
 
 def argmax_rgb(m, cmap=plt.cm.viridis):
     """Take argmax of m along dimension 1 and apply RGB colorcode on it
-    
+
     Parameters
     ----------
     m : [type]
@@ -21,10 +20,10 @@ def argmax_rgb(m, cmap=plt.cm.viridis):
     """
     B, P, H, W = ptutils.nn.shape_as_list(m)
     max_values, argmax_map = torch.max(m, dim=1)
-    if m.is_cuda:
-        dtype = torch.cuda.FloatTensor
-    else:
-        dtype = torch.FloatTensor
+    # if m.is_cuda:
+    #     dtype = torch.cuda.FloatTensor
+    # else:
+    #     dtype = torch.FloatTensor
     colors = imageutils.make_colors(P, cmap=cmap)
     colors = colors.astype(np.float32)
     colors = torch.from_numpy(colors)

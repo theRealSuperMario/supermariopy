@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 
-import tensorflow as tf
 import glob
 import os
-import pandas as pd
-import traceback
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
-import click
 import pprint
+import traceback
+
+import click
+import pandas as pd
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 
 # Extraction function
 def tflog2pandas(path: str) -> pd.DataFrame:
     """convert single tensorflow log file to pandas DataFrame
-    
+
     Parameters
     ----------
     path : str
         path to tensorflow log file
-    
+
     Returns
     -------
     pd.DataFrame
@@ -43,7 +43,7 @@ def tflog2pandas(path: str) -> pd.DataFrame:
             r = pd.DataFrame(r)
             runlog_data = pd.concat([runlog_data, r])
     # Dirty catch of DataLossError
-    except:
+    except Exception:
         print("Event file possibly corrupt: {}".format(path))
         traceback.print_exc()
     return runlog_data
@@ -71,17 +71,22 @@ def many_logs2pandas(event_paths):
 )
 @click.option("--out-dir", "-o", help="output directory", default=".")
 def main(logdir_or_logfile: str, write_pkl: bool, write_csv: bool, out_dir: str):
-    """This is a enhanced version of https://gist.github.com/ptschandl/ef67bbaa93ec67aba2cab0a7af47700b
+    """This is a enhanced version of
+    https://gist.github.com/ptschandl/ef67bbaa93ec67aba2cab0a7af47700b
 
-    This script exctracts variables from all logs from tensorflow event files ("event*"),
-    writes them to Pandas and finally stores them a csv-file or pickle-file including all (readable) runs of the logging directory.
+    This script exctracts variables from all logs from tensorflow event
+    files ("event*"),
+    writes them to Pandas and finally stores them a csv-file or
+    pickle-file including all (readable) runs of the logging directory.
 
     Example usage:
 
-    # create csv file from all tensorflow logs in provided directory (.) and write it to folder "./converted"
+    # create csv file from all tensorflow logs in provided directory (.)
+    # and write it to folder "./converted"
     tflogs2pandas.py . --write-csv --no-write-pkl --o converted
 
-    # creaste csv file from tensorflow logfile only and write into and write it to folder "./converted"
+    # creaste csv file from tensorflow logfile only and write into
+    # and write it to folder "./converted"
     tflogs2pandas.py tflog.hostname.12345 --write-csv --no-write-pkl --o converted
     """
     pp = pprint.PrettyPrinter(indent=4)

@@ -1,16 +1,8 @@
-import torch
-from torch.utils.data import Dataset, DataLoader
-from torch.nn import functional
-from torch.nn import functional as F
-import numpy as np
-import torchvision
+from typing import List
 
-## TORCHVISION
-import torchvision.models as models
-from torchvision import transforms, utils, datasets
-from supermariopy.ptutils import nn as nn
+import torch
+import torchvision
 from supermariopy.ptutils import compat as ptcompat
-from typing import *
 
 
 # VGG architecture, used for the perceptual loss using a pretrained VGG network
@@ -36,7 +28,7 @@ class VGG19(torch.nn.Module):
 
         References
         ----------
-        [1] : https://github.com/NVlabs/SPADE/blob/master/models/networks/architecture.py
+        [1] : https://github.com/NVlabs/SPADE/blob/master/models/networks/architecture.py # noqa
 
         See Also
         --------
@@ -82,12 +74,12 @@ class VGG19(torch.nn.Module):
 
     def forward(self, X):
         """assumes X to be in range [0, 1].
-        
+
         Parameters
         ----------
         X : [type]
             [description]
-        
+
         Returns
         -------
         list
@@ -156,9 +148,9 @@ class PerceptualVGG(torch.nn.Module):
     def __init__(
         self,
         vgg=torchvision.models.vgg19(pretrained=True).eval(),
-        feature_weights=[1.0,] * 6,
+        feature_weights=[1.0] * 6,
         use_gram=False,
-        gram_weights=[0.1,] * 6,
+        gram_weights=[0.1] * 6,
     ):
         """ this implementation seems to be different than the one above in `VGGLoss`
         this implementation is based on the vunet paper
@@ -223,7 +215,6 @@ class PerceptualVGG(torch.nn.Module):
 
     def loss(self, target: torch.Tensor, pred: torch.Tensor) -> List[torch.Tensor]:
         VGGOutput = self.VGG_OUTPUT
-        weights = self.feature_weights
         target_feats = self(target)
         target_feats = [target_feats[k] for k in VGGOutput]
         pred_feats = self(pred)

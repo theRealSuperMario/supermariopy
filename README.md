@@ -1,3 +1,6 @@
+* CI testing is done on [gitlab](https://gitlab.com/theRealSuperMario/supermariopy).
+
+
 # Scripts
 
 * tflogs2pands.py

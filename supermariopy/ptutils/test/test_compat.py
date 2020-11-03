@@ -1,7 +1,6 @@
-import pytest
-from supermariopy.ptutils import compat as ptcompat
-import torch
 import numpy as np
+import torch
+from supermariopy.ptutils import compat as ptcompat
 
 
 def test_torch_gather():
@@ -17,7 +16,7 @@ def test_torch_gather():
     idx = torch.zeros((10), dtype=torch.int64)
     arr = torch.linspace(-1, 1, 30, dtype=torch.float32).view((-1, 3))
     gathered = ptcompat.torch_gather(arr, idx)
-    assert np.allclose(gathered, np.stack([gathered[0, :],] * 10))
+    assert np.allclose(gathered, np.stack([gathered[0, :]] * 10))
 
 
 def test_torch_gather_nd():

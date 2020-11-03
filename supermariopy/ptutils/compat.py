@@ -1,6 +1,6 @@
-from supermariopy.ptutils import nn as smptnn
-import warnings
 import torch
+import torchvision.transforms.functional as TF
+from supermariopy.ptutils import nn as smptnn
 
 """Functions to establish compatibility with other frameworks such as Tensorflow"""
 
@@ -30,13 +30,17 @@ def torch_gather_nd(params, indices):
     --------
 
         4D example
-        params: tensor shaped [n_1, n_2, n_3, n_4] --> 4 dimensional
-        indices: tensor shaped [m_1, m_2, m_3, m_4, 4] --> multidimensional list of 4D indices
+        params: tensor shaped [n_1, n_2, n_3, n_4]
+            --> 4 dimensional
+        indices: tensor shaped [m_1, m_2, m_3, m_4, 4]
+            --> multidimensional list of 4D indices
         returns: tensor shaped [m_1, m_2, m_3, m_4]
 
         ND_example
-        params: tensor shaped [n_1, ..., n_p] --> d-dimensional tensor
-        indices: tensor shaped [m_1, ..., m_i, d] --> multidimensional list of d-dimensional indices
+        params: tensor shaped [n_1, ..., n_p]
+            --> d-dimensional tensor
+        indices: tensor shaped [m_1, ..., m_i, d]
+            --> multidimensional list of d-dimensional indices
         returns: tensor shaped [m_1, ..., m_1]
 
     References
@@ -163,7 +167,7 @@ def torch_sigmoid_cross_entropy_with_logits(logits, labels):
     References
     ----------
 
-    [1]: https://discuss.pytorch.org/t/equivalent-of-tensorflows-sigmoid-cross-entropy-with-logits-in-pytorch/1985/13
+    [1]: https://discuss.pytorch.org/t/equivalent-of-tensorflows-sigmoid-cross-entropy-with-logits-in-pytorch/1985/13 # noqa
 
     # TODO: check if reduction mode matches tf.nn.sigmoid_cross_entropy_with_logits
     """

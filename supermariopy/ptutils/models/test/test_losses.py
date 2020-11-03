@@ -1,5 +1,6 @@
-import torch
 import numpy as np
+import torch
+import torch.nn as nn
 
 
 class TestVGGFeatures:
@@ -28,7 +29,6 @@ class TestVGGFeatures:
         vgg = nn.VGGFeatures(original_scale=True)
         features_pt = vgg.make_features_op(x)
 
-        checks = []
         features_pt = [fpt.permute(0, 2, 3, 1).detach().numpy() for fpt in features_pt]
         for ftf, fpt in zip(features_tf, features_pt):
             # checks.append(np.allclose(ftf, fpt, atol=1.0e-1))

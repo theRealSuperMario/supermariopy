@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 
 
 class Test_Imageutils:
@@ -41,7 +41,6 @@ class Test_Imageutils:
 
     def test_make_colors_01(self):
         from supermariopy.imageutils import make_colors
-        from matplotlib import pyplot as plt
 
         colors = make_colors(10)
         expected = [0, 1]
@@ -51,7 +50,6 @@ class Test_Imageutils:
 
     def test_make_colors_bytes(self):
         from supermariopy.imageutils import make_colors
-        from matplotlib import pyplot as plt
 
         colors = make_colors(10, bytes=True)
         expected = [0, 255]

@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 
@@ -18,7 +19,7 @@ class Embedder:
 
         References
         ----------
-        [1]: https://github.com/bmild/nerf/blob/8edde335d2b18188769850b03c45515352d66b31/run_nerf_helpers.py#L22
+        [1]: https://github.com/bmild/nerf/blob/8edde335d2b18188769850b03c45515352d66b31/run_nerf_helpers.py#L22  # noqa
         """
         self.kwargs = kwargs
         self.create_embedding_fn()
@@ -69,21 +70,18 @@ class Embedder:
         return tf.concat([fn(inputs) for fn in self.embed_fns], -1)
 
 
-import numpy as np
-
-
 def get_positional_encodings(inputs, **kwargs):
     r"""
     Use this snippet for old non-eager tensorflow.
     Calculate positional encoding :math:`\gamma`
 
-    .. math:: 
+    .. math::
 
-        \gamma(p) = (\sin(2^{0} \pi p), \cos(2^{0} \pi p), \dots, \sin(2^{L-1} \pi p), \cos(2^{L-1} \pi p))
+        \gamma(p) = (\sin(2^{0} \pi p), \cos(2^{0} \pi p), \dots, \sin(2^{L-1} \pi p), \cos(2^{L-1} \pi p)) # noqa
 
     num_freqs is :\math: L parameter in paper
     max_freq_log2 is :\math: L-1 parameter in paper
-    
+
     kwargs = {
         "include_input": True,
         "input_dims": 3,

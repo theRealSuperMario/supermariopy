@@ -1,16 +1,18 @@
-import torch
-from supermariopy.ptutils import nn as ptnn
-from supermariopy.ptutils import utils as ptu
-from supermariopy.ptutils import compat as ptcompat
-
 """
 Note:
-1. there are other tps implementations out there, such as 
+1. there are other tps implementations out there, such as
     * https://github.com/cheind/py-thin-plate-spline
     * https://github.com/WarBean/tps_stn_pytorch/blob/master/tps_grid_gen.py
-2.  I decided not to use them, but rather reimplement the one provided by https://github.com/CompVis/unsupervised-disentangling 
-    in pytorch. This way, I have a TPS implementation with consistent behvior in pytorch and tensorflow.
+2.  I decided not to use them, but rather reimplement
+    the one provided by https://github.com/CompVis/unsupervised-disentangling
+    in pytorch.
+    This way, I have a TPS implementation with consistent
+    behvior in pytorch and tensorflow.
 """
+
+import torch
+from supermariopy.ptutils import compat as ptcompat
+from supermariopy.ptutils import nn as ptnn
 
 
 def pt_rotation_matrix(rotation):

@@ -3,11 +3,10 @@ Hourglass network inserted in the pre-activated Resnet
 Use lr=0.01 for current version
 (c) YANG, Wei
 
-Original version of code : https://github.com/bearpaw/pytorch-pose/blob/master/pose/models/hourglass.py
+Original version of code : https://github.com/bearpaw/pytorch-pose/blob/master/pose/models/hourglass.py # noqa
 """
 import torch.nn as nn
 import torch.nn.functional as F
-
 
 __all__ = ["HourglassNet", "hg"]
 
@@ -56,7 +55,7 @@ class Bottleneck(nn.Module):
 class Hourglass(nn.Module):
     def __init__(self, block, num_blocks, planes, depth):
         """Single Hourglass Network
-        
+
         Parameters
         ----------
         block : Callable

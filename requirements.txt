@@ -1,15 +1,15 @@
+black
+colorcet
+cython
+deprecated
+deprecation
+matplotlib
+numpy
+opencv-python==3.4.2.17
+pandas
+pydensecrf @ git+https://git@github.com/lucasb-eyer/pydensecrf@4d5343c398d75d7ebae34f51a47769084ba3a613#egg=pydensecrf
+pytest
+pytest-mpl
+scikit-image
 seaborn
 webcolors
-pytest
-numpy
-matplotlib
-scikit-image
-deprecation
-pandas
-opencv-python==3.4.2.17
-colorcet
-pytest-mpl
-deprecated
-black
-cython
-pydensecrf @ git+https://git@github.com/lucasb-eyer/pydensecrf@4d5343c398d75d7ebae34f51a47769084ba3a613#egg=pydensecrf

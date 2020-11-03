@@ -1,11 +1,11 @@
-import pytest
 import os
+
+import numpy as np
+import pandas as pd
 
 
 class Test_merge_tflog_dfs:
     def setup_dataframes(self, tmpdir):
-        import pandas as pd
-
         data1 = {
             "metric": ["foo", "foo", "bar", "bar"],
             "value": [1.0, 1.0, 2.0, 3.0],
@@ -23,10 +23,6 @@ class Test_merge_tflog_dfs:
         df.to_csv(os.path.join(tmpdir, "data2.csv"), index=False)
 
     def test_merging(self, tmpdir):
-        from scripts import merge_tflog_dfs
-        import pandas as pd
-        import numpy as np
-
         self.setup_dataframes(tmpdir)
         files2stack = [os.path.join(tmpdir, "data{}.csv".format(i)) for i in [1, 2]]
         out_name = tmpdir
@@ -60,9 +56,6 @@ class Test_merge_tflog_dfs:
         assert [0, 1, 2, 3] == list(np.unique(df_created.step))
 
     def test_merging_with_ranges(self, tmpdir):
-        from scripts import merge_tflog_dfs
-        import pandas as pd
-
         self.setup_dataframes(tmpdir)
         files2stack = [os.path.join(tmpdir, "data{}.csv".format(i)) for i in [1, 2]]
         out_name = tmpdir
@@ -81,6 +74,4 @@ class Test_merge_tflog_dfs:
             ]
         )
         df_created = pd.read_csv(out_name)
-        import numpy as np
-
         assert [0, 1, 2] == list(np.unique(df_created.step))

@@ -1,7 +1,7 @@
-import pytest
-from supermariopy.ptutils import nn
-import torch
 import numpy as np
+import pytest
+import torch
+from supermariopy.ptutils import nn
 
 
 def test_spatial_softmax():
@@ -200,13 +200,13 @@ def test_hloss():
 
     tf.enable_eager_execution()
 
-    l = torch.randn(1, 2, 128, 128)
-    p = torch.nn.functional.softmax(l, dim=1)
+    logits = torch.randn(1, 2, 128, 128)
+    probs = torch.nn.functional.softmax(logits, dim=1)
 
-    l_tf = l.permute(0, 2, 3, 1).numpy()
-    p_tf = p.permute(0, 2, 3, 1).numpy()
+    l_tf = logits.permute(0, 2, 3, 1).numpy()
+    p_tf = probs.permute(0, 2, 3, 1).numpy()
 
-    h_pt = nn.HLoss()(l)
+    h_pt = nn.HLoss()(logits)
     h_tf = tf.nn.softmax_cross_entropy_with_logits_v2(p_tf, l_tf)
     h_tf = tf.reduce_sum(h_tf, axis=(1, 2))
     assert np.allclose(h_pt, h_tf)
@@ -250,8 +250,7 @@ def test_flip():
 
 
 def test_init():
-    conv = torch.nn.Conv2d(128, 128, 3)
-    assert True
+    assert False
 
 
 def test_convbnrelu():

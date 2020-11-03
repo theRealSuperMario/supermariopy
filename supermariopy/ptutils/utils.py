@@ -1,5 +1,5 @@
-import torch
 import numpy as np
+import torch
 from supermariopy.ptutils import compat as ptcompat
 
 
@@ -16,7 +16,8 @@ def to_numpy(x, permute=False):
 
 
 def to_torch(x, permute=False):
-    """automatically convert numpy array to torch and permute channels from NHWC to NCHW"""
+    """automatically convert numpy array to torch and permute
+    channels from NHWC to NCHW"""
     if isinstance(x, np.ndarray):
         x = torch.from_numpy(x)
         if torch.cuda.is_available():

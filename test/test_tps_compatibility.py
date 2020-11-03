@@ -1,9 +1,8 @@
+import numpy as np
 import tensorflow as tf
 import torch
-
 from supermariopy.ptutils import tps as pt_tps
 from supermariopy.tfutils import tps as tf_tps
-import numpy as np
 
 tf.enable_eager_execution()
 

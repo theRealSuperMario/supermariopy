@@ -52,6 +52,42 @@ def is_in_range(array: np.ndarray, target_range: Iterable) -> bool:
     return array.min() >= target_range[0] and array.max() <= target_range[1]
 
 
+def np_map_fn(func: Callable, data: Tuple) -> Tuple:
+    """map func along axis 0 of each item in data.
+
+    # TODO: fails when tuple has length 1
+
+    Similar to tf.map_fn
+
+    Parameters
+    ----------
+    func : Callab
+        function to map to the items in data
+    data : Tuple[np.ndarray]
+
+    Returns
+    -------
+    Tuple[np.ndarray]
+        function `func` applied to each element in `data`
+
+    Examples
+    --------
+        data = (np.arange(10).reshape(10, 1), np.arange(10)[::-1].reshape(10, 1))
+        output = np_map_fn(lambda x: (x[0]**2, x[1]**2), data)
+        output[0].squeeze()
+        >>> array([ 0,  1,  4,  9, 16, 25, 36, 49, 64, 81])
+
+        output = np_map_fn(lambda x: (x[0]**2, x[1]**2), data)
+        output[0].shape
+        >>> (10, 1)
+    """
+    generator = zip(*map(lambda x: [x[i, ...] for i in range(x.shape[0])], data))
+    # (data[0][0], data[0][1], ...), (data[1][0], data[1][1], ...), ...
+    outputs = map(func, generator)
+    outputs = list(map(np.stack, zip(*outputs)))
+    return outputs
+
+
 def put_text(
     img: np.ndarray,
     text: str,

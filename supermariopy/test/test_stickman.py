@@ -1,9 +1,6 @@
 import pytest
-from supermariopy import stickman
-from supermariopy import imageutils
-from supermariopy import plotting
 from matplotlib import pyplot as plt
-import numpy as np
+from supermariopy import plotting, stickman
 
 
 class Test_example_joint_models:
@@ -11,7 +8,6 @@ class Test_example_joint_models:
     def test_joint_model(self):
         # kps = stickman.EXAMPLE_JOINT_MODELS["JointModel_15"]
         # joint_img = stickman.make_joint_img((128, 128), kps, stickman.JointModel_15)
-        kps = stickman.VUNetStickman.get_example_valid_keypoints()
         joint_img = stickman.VUNetStickman.make_joint_img(
             (128, 128),
             stickman.VUNET_JOINT_ORDER,

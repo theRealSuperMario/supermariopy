@@ -6,7 +6,7 @@ class View(torch.nn.Module):
         """Reshape layer.
 
         https://discuss.pytorch.org/t/equivalent-of-np-reshape-in-pytorch/144/5
-        
+
         Examples
         --------
 

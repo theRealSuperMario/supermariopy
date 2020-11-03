@@ -1,14 +1,14 @@
 """
 Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
-Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
+Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode). # noqa
 """
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision
 import torch.nn.utils.spectral_norm as spectral_norm
 from models.networks.normalization import SPADE
+from torch.nn import init
 
 
 # ResNet block that uses SPADE.
@@ -68,6 +68,71 @@ class SPADEResnetBlock(nn.Module):
         return F.leaky_relu(x, 2e-1)
 
 
+class BaseNetwork(nn.Module):
+    def __init__(self):
+        """[summary]
+
+        Parameters
+        ----------
+        nn : [type]
+            [description]
+
+        References
+        ----------
+        [1] : https://github.com/NVlabs/SPADE/blob/master/models/networks/base_network.py # noqa
+        """
+        super(BaseNetwork, self).__init__()
+
+    def print_network(self):
+        if isinstance(self, list):
+            self = self[0]
+        num_params = 0
+        for param in self.parameters():
+            num_params += param.numel()
+        print(
+            "Network [%s] was created. Total number of parameters: %.1f million. "
+            "To see the architecture, do print(network)."
+            % (type(self).__name__, num_params / 1000000)
+        )
+
+    def init_weights(self, init_type="normal", gain=0.02):
+        def init_func(m):
+            classname = m.__class__.__name__
+            if classname.find("BatchNorm2d") != -1:
+                if hasattr(m, "weight") and m.weight is not None:
+                    init.normal_(m.weight.data, 1.0, gain)
+                if hasattr(m, "bias") and m.bias is not None:
+                    init.constant_(m.bias.data, 0.0)
+            elif hasattr(m, "weight") and (
+                classname.find("Conv") != -1 or classname.find("Linear") != -1
+            ):
+                if init_type == "normal":
+                    init.normal_(m.weight.data, 0.0, gain)
+                elif init_type == "xavier":
+                    init.xavier_normal_(m.weight.data, gain=gain)
+                elif init_type == "xavier_uniform":
+                    init.xavier_uniform_(m.weight.data, gain=1.0)
+                elif init_type == "kaiming":
+                    init.kaiming_normal_(m.weight.data, a=0, mode="fan_in")
+                elif init_type == "orthogonal":
+                    init.orthogonal_(m.weight.data, gain=gain)
+                elif init_type == "none":  # uses pytorch's default init method
+                    m.reset_parameters()
+                else:
+                    raise NotImplementedError(
+                        "initialization method [%s] is not implemented" % init_type
+                    )
+                if hasattr(m, "bias") and m.bias is not None:
+                    init.constant_(m.bias.data, 0.0)
+
+        self.apply(init_func)
+
+        # propagate to children
+        for m in self.children():
+            if hasattr(m, "init_weights"):
+                m.init_weights(init_type, gain)
+
+
 class SPADEGenerator(BaseNetwork):
     @staticmethod
     def modify_commandline_options(parser, is_train):
@@ -76,14 +141,19 @@ class SPADEGenerator(BaseNetwork):
             "--num_upsampling_layers",
             choices=("normal", "more", "most"),
             default="normal",
-            help="If 'more', adds upsampling layer between the two middle resnet blocks. If 'most', also add one more upsampling + resnet layer at the end of the generator",
+            help=(
+                "If 'more', adds upsampling layer between the two middle "
+                "resnet blocks."
+                "If 'most', also add one more upsampling + resnet layer"
+                "at the end of the generator"
+            ),
         )
 
         return parser
 
     def __init__(self, opt):
         """Reference : https://github.com/NVlabs/SPADE/blob/master/models/networks/generator.py
-        
+
         Parameters
         ----------
         opt : [type]
@@ -190,72 +260,3 @@ class SPADEGenerator(BaseNetwork):
         x = F.tanh(x)
 
         return x
-
-
-import torch.nn as nn
-from torch.nn import init
-
-
-class BaseNetwork(nn.Module):
-    def __init__(self):
-        """[summary]
-        
-        Parameters
-        ----------
-        nn : [type]
-            [description]
-
-        References
-        ----------
-        [1] : https://github.com/NVlabs/SPADE/blob/master/models/networks/base_network.py
-        """
-        super(BaseNetwork, self).__init__()
-
-    def print_network(self):
-        if isinstance(self, list):
-            self = self[0]
-        num_params = 0
-        for param in self.parameters():
-            num_params += param.numel()
-        print(
-            "Network [%s] was created. Total number of parameters: %.1f million. "
-            "To see the architecture, do print(network)."
-            % (type(self).__name__, num_params / 1000000)
-        )
-
-    def init_weights(self, init_type="normal", gain=0.02):
-        def init_func(m):
-            classname = m.__class__.__name__
-            if classname.find("BatchNorm2d") != -1:
-                if hasattr(m, "weight") and m.weight is not None:
-                    init.normal_(m.weight.data, 1.0, gain)
-                if hasattr(m, "bias") and m.bias is not None:
-                    init.constant_(m.bias.data, 0.0)
-            elif hasattr(m, "weight") and (
-                classname.find("Conv") != -1 or classname.find("Linear") != -1
-            ):
-                if init_type == "normal":
-                    init.normal_(m.weight.data, 0.0, gain)
-                elif init_type == "xavier":
-                    init.xavier_normal_(m.weight.data, gain=gain)
-                elif init_type == "xavier_uniform":
-                    init.xavier_uniform_(m.weight.data, gain=1.0)
-                elif init_type == "kaiming":
-                    init.kaiming_normal_(m.weight.data, a=0, mode="fan_in")
-                elif init_type == "orthogonal":
-                    init.orthogonal_(m.weight.data, gain=gain)
-                elif init_type == "none":  # uses pytorch's default init method
-                    m.reset_parameters()
-                else:
-                    raise NotImplementedError(
-                        "initialization method [%s] is not implemented" % init_type
-                    )
-                if hasattr(m, "bias") and m.bias is not None:
-                    init.constant_(m.bias.data, 0.0)
-
-        self.apply(init_func)
-
-        # propagate to children
-        for m in self.children():
-            if hasattr(m, "init_weights"):
-                m.init_weights(init_type, gain)

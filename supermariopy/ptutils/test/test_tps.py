@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
-import tensorflow as tf
-import pytest
 import numpy as np
+import pytest
 import torch
 
 

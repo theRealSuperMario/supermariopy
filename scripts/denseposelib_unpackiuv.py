@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-import click
-from supermariopy import denseposelib
-from supermariopy import imageutils
 import os
-import numpy as np
+
+import click
 import cv2
 from matplotlib import pyplot as plt
+from supermariopy import denseposelib, imageutils
 
 
 @click.command()

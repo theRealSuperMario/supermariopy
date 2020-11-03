@@ -1,6 +1,5 @@
-import pytest
-from supermariopy import viz
 import numpy as np
+from supermariopy import viz
 
 
 def create_test_parts():

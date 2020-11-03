@@ -1,7 +1,6 @@
-import pytest
+import numpy as np
 import torch
 from supermariopy.ptutils import losses as smptlosses
-import numpy as np
 
 
 def test_vgg19_loss():
@@ -9,8 +8,8 @@ def test_vgg19_loss():
     y = torch.zeros((1, 3, 224, 224))
 
     criterion = smptlosses.VGGLoss(None)
-    l = criterion(x, y)
-    assert np.allclose(l.numpy(), np.array([0]))
+    loss = criterion(x, y)
+    assert np.allclose(loss.numpy(), np.array([0]))
 
 
 def test_vgg19_with_l1_loss():
@@ -18,8 +17,8 @@ def test_vgg19_with_l1_loss():
     y = torch.zeros((1, 3, 224, 224))
 
     criterion = smptlosses.VGGLossWithL1(None)
-    l = criterion(x, y)
-    assert np.allclose(l.numpy(), np.array([0]))
+    loss = criterion(x, y)
+    assert np.allclose(loss.numpy(), np.array([0]))
 
 
 class Test_PerceptualVGG:
@@ -28,8 +27,6 @@ class Test_PerceptualVGG:
 
         vgg1 = smptlosses.VGG19()
         out_1 = vgg1(x)
-
-        import torchvision
 
         vgg2 = smptlosses.PerceptualVGG()
         out_2 = vgg2(x)

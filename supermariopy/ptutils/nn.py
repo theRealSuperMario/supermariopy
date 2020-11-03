@@ -1,13 +1,8 @@
-import torch
-from torch.utils.data import Dataset, DataLoader
-from torch.nn import functional
-from torch.nn import functional as F
+import cv2
 import numpy as np
-import torchvision
-
-## TORCHVISION
-import torchvision.models as models
-from torchvision import transforms, utils, datasets
+import torch
+import torch.nn as nn
+from torch.nn import functional as F
 
 # TODO: add flake8 check
 CHANNELS_FIRST = True
@@ -19,7 +14,7 @@ def shape_as_list(t):
 
 
 def spatial_softmax(features):
-    """Apply softmax on flattened spatial dimensions and then unflatten again.
+    r"""Apply softmax on flattened spatial dimensions and then unflatten again.
 
     Parameters
     ----------
@@ -29,7 +24,7 @@ def spatial_softmax(features):
     if not CHANNELS_FIRST:
         raise NotImplementedError
     N, C, H, W = shape_as_list(features)
-    probs = functional.softmax(features.view(N * C, H * W), dim=-1)
+    probs = F.softmax(features.view(N * C, H * W), dim=-1)
     probs = probs.view(N, C, H, W)
     return probs
 
@@ -38,7 +33,7 @@ def softmax(x, spatial=False):
     if spatial:
         return spatial_softmax(x)
     else:
-        return functional.softmax(x, dim=-1)
+        return F.softmax(x, dim=-1)
 
 
 difference1d = np.float32([0.0, 0.5, -0.5])
@@ -58,7 +53,7 @@ def grad(x):
     n = shape_as_list(x)[1]
     kernel = fd_kernel(n)
     g = torch.nn.functional.conv2d(
-        input=x, weight=torch.Tensor(kernel), stride=2 * [1,], padding=1
+        input=x, weight=torch.Tensor(kernel), stride=2 * [1], padding=1
     )
     return g
 
@@ -111,7 +106,24 @@ def diag_part(x):
 
 
 def straight_through_estimator(y_hard, y):
-    # from https://discuss.pytorch.org/t/stop-gradients-for-st-gumbel-softmax/530/5
+    """
+    Parameters
+    ----------
+    y_hard : [type]
+        [description]
+    y : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+
+    References
+    ----------
+        https://discuss.pytorch.org/t/stop-gradients-for-st-gumbel-softmax/530/5 # noqa
+
+    """
     return (y_hard.float() - y).detach() + y
 
 
@@ -193,7 +205,7 @@ class FullLatentDistribution(torch.nn.Module):
 class LatentDistribution(torch.nn.Module):
     def __init__(self, parameters, dim, stochastic=True):
         """Implements normal Gaussian distribution with diagonal covariance matrix.
-        
+
         Parameters
         ----------
         nn : [type]
@@ -302,8 +314,6 @@ def image_gradient(x):
     # x: (b,c,h,w), float32 or float64
     # dx, dy: (b,c,h,w)
 
-    h_x = x.size()[-2]
-    w_x = x.size()[-1]
     # gradient step=1
     left = x
     right = F.pad(x, [0, 1, 0, 0])[:, :, :, 1:]
@@ -322,7 +332,7 @@ def image_gradient(x):
 
 def to_one_hot(y, n_dims):
     """Creates one_hot representation of x with `n_dims` = `n_classes`.
-    
+
     Parameters
     ----------
     y : torch.Tensor
@@ -356,14 +366,14 @@ def to_one_hot(y, n_dims):
 def flip(x, dim):
     """Reverse tensor order aling given dimension.
     Drop-in replacement for tf.reverse(x, axis)
-    
+
     Parameters
     ----------
     x : torch.Tensor
         tensor to flip
     dim : int
         dimension along which to flip
-    
+
     Returns
     -------
     torch.Tensor
@@ -385,21 +395,21 @@ class HLoss(torch.nn.Module):
     def __init__(self):
         """
         Entropy loss function.
-        
+
         References
         ----------
-        [1] https://discuss.pytorch.org/t/pytorch-equivalence-to-sparse-softmax-cross-entropy-with-logits-in-tensorflow/18727/2
+        [1] https://discuss.pytorch.org/t/pytorch-equivalence-to-sparse-softmax-cross-entropy-with-logits-in-tensorflow/18727/2 # noqa
         """
         super(HLoss, self).__init__()
 
     def forward(self, x):
         """return entropy of x
-        
+
         Parameters
         ----------
         x : torch.Tensor
             unnormalized log-probabilities, shaped [N, C, H, W]
-        
+
         Returns
         -------
         torch.Tensor
@@ -413,7 +423,7 @@ class HLoss(torch.nn.Module):
 class EMA(torch.nn.Module):
     def __init__(self, mu):
         r"""Implements exponential weighted moving average smoothing.
-        
+
         Parameters
         ----------
         torch : [type]
@@ -460,18 +470,21 @@ def probs_to_mu_sigma(probs):
     """Calculate mean and covariance matrix for each channel of probs
     tensor of keypoint probabilites [N, C, H, W]
     mean calculated on a grid of scale [-1, 1]
-    
+
     Parameters
     ----------
     probs : torch.Tensor
-        tensor of shape [N, C, H, W] where each channel along axis 1 is interpreted as a probability density.
-    
+        tensor of shape [N, C, H, W] where each channel along axis 1
+        is interpreted as a probability density.
+
     Returns
     -------
     mu : torch.Tensor
-        tensor of shape [N, C, 2] representing partwise mean coordinates of x and y for each item in the batch
+        tensor of shape [N, C, 2] representing partwise mean coordinates
+        of x and y for each item in the batch
     sigma : torch.Tensor
-        tensor of shape [N, C, 2, 2] representing covariance matrix for each item in the batch
+        tensor of shape [N, C, 2, 2] representing covariance matrix
+        for each item in the batch
     """
     bn, nk, h, w = shape_as_list(probs)
     y_t = tile(torch.linspace(-1, 1, h).view(h, 1), w, 1)
@@ -491,7 +504,7 @@ def probs_to_mu_sigma(probs):
 
 def tile(a, n_tile, dim):
     """Equivalent of numpy or tensorflow tile.
-    
+
     References
     ----------
     [1] : https://discuss.pytorch.org/t/how-to-tile-a-tensor/13853/4
@@ -510,22 +523,24 @@ def tile(a, n_tile, dim):
 def crop_bounding_boxes(image_t, boundingboxes_t):
     """A differentiable version of bounding box cropping.
 
-    Note that if the number of bounding boxes per image is different, the output tensors have different sizes
-    
+    Note that if the number of bounding boxes per image is different,
+    the output tensors have different sizes.
+
     Parameters
     ----------
     image_t : torch.tensor
         Tensor with a batch of images, shaped [N, C, H, W]
     boundingboxes_t : torch.tensor
-        Tensor with a batch of bounding box coordinates, shaped [N, N_boxes, 4]. 
-        First 2 indicate top left corner, last 2 indicate bottom right corner (x_top, y_top, x_bottom, y_bottom)
+        Tensor with a batch of bounding box coordinates, shaped [N, N_boxes, 4].
+        First 2 indicate top left corner, last 2 indicate bottom right corner
+        (x_top, y_top, x_bottom, y_bottom)
     """
 
     image_stack = []
     for image, box_coords in zip(image_t, boundingboxes_t):
         crops = []
         for coords in box_coords:
-            x_min, y_min, x_max, ymax = coords
+            x_min, y_min, x_max, y_max = coords
             crops.append(image[:, x_min:x_max, y_min:y_max])
         image_stack.append(torch.stack(crops))
     return image_stack
@@ -566,7 +581,6 @@ def conv3x3(in_channels, out_channels, stride=1):
 class ResidualBlock(torch.nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
         """
-            From https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/deep_residual_network/main.py
             Implements the following mapping
 
             Inputs: x
@@ -576,6 +590,10 @@ class ResidualBlock(torch.nn.Module):
             --> y:= bn(conv(y))
             --> y:= y + x
             --> y:= relu(y)
+
+            References
+            ----------
+                https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/deep_residual_network/main.py # noqa
         """
         super(ResidualBlock, self).__init__()
         self.conv1 = conv3x3(in_channels, out_channels, stride)
@@ -599,7 +617,7 @@ class ResidualBlock(torch.nn.Module):
 class ResidualBlock_NoBN(torch.nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
         """
-        Adapted from 
+        Adapted from
         https://github.com/yunjey/pytorch-tutorial/blob/master/tutorials/02-intermediate/deep_residual_network/main.py
         Implements the following mapping
 
@@ -643,7 +661,7 @@ class ResidualBlock_NoBN(torch.nn.Module):
 class ConvBnRelu(torch.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=1, strides=1, pad=0):
         """conv without bias
-        
+
         Parameters
         ----------
         torch : [type]
@@ -694,9 +712,10 @@ def part_map_to_mu_L_inv(part_maps, scal):
     b_sq_add_c_sq = stddev[:, :, 1, 1]
     eps = 1e-12
 
-    a = torch.sqrt(
-        a_sq + eps
-    )  # Σ = L L^T Prec = Σ^-1  = L^T^-1 * L^-1  ->looking for L^-1 but first L = [[a, 0], [b, c]
+    # Σ = L L^T Prec = Σ^-1  = L^T^-1 * L^-1
+    # -> looking for L^-1 but first L = [[a, 0], [b, c]
+
+    a = torch.sqrt(a_sq + eps)
     b = a_b / (a + eps)
     c = torch.sqrt(b_sq_add_c_sq - b ** 2 + eps)
     z = torch.zeros_like(a)
@@ -717,25 +736,25 @@ def part_map_to_mu_L_inv(part_maps, scal):
     return mu, L_inv
 
 
-def probs_to_mu_sigma(probs, scal):
-    bn, n_k, h, w = probs.shape
-    y_t = ptcompat.torch_tile_nd(torch.linspace(-1.0, 1.0, h).view([h, 1]), [1, w])
-    x_t = ptcompat.torch_tile_nd(torch.linspace(-1.0, 1.0, w).view([1, w]), [h, 1])
+# def probs_to_mu_sigma(probs, scal):
+#     bn, n_k, h, w = probs.shape
+#     y_t = ptcompat.torch_tile_nd(torch.linspace(-1.0, 1.0, h).view([h, 1]), [1, w])
+#     x_t = ptcompat.torch_tile_nd(torch.linspace(-1.0, 1.0, w).view([1, w]), [h, 1])
 
-    y_t = torch.unsqueeze(y_t, dim=-1)
-    x_t = torch.unsqueeze(x_t, dim=-1)
-    meshgrid = torch.cat([y_t, x_t], dim=-1)
-    # x_t = tf.tile(tf.reshape(tf.linspace(-1.0, 1.0, w), [1, w]), [h, 1])
-    # y_t = tf.expand_dims(y_t, axis=-1)
-    # x_t = tf.expand_dims(x_t, axis=-1)
-    # meshgrid = tf.concat([y_t, x_t], axis=-1)
+#     y_t = torch.unsqueeze(y_t, dim=-1)
+#     x_t = torch.unsqueeze(x_t, dim=-1)
+#     meshgrid = torch.cat([y_t, x_t], dim=-1)
+#     # x_t = tf.tile(tf.reshape(tf.linspace(-1.0, 1.0, w), [1, w]), [h, 1])
+#     # y_t = tf.expand_dims(y_t, axis=-1)
+#     # x_t = tf.expand_dims(x_t, axis=-1)
+#     # meshgrid = tf.concat([y_t, x_t], axis=-1)
 
-    x_xt = torch.einsum("ijm,ijn->ijmn", meshgrid, meshgrid)
-    mu = torch.einsum("ijl,akij->akl", meshgrid, probs)
-    mu_mut = torch.einsum("akm,akn->akmn", mu, mu)
+#     x_xt = torch.einsum("ijm,ijn->ijmn", meshgrid, meshgrid)
+#     mu = torch.einsum("ijl,akij->akl", meshgrid, probs)
+#     mu_mut = torch.einsum("akm,akn->akmn", mu, mu)
 
-    sigma = torch.einsum("ijmn,akij->akmn", x_xt, probs) - mu_mut
-    return mu, sigma
+#     sigma = torch.einsum("ijmn,akij->akmn", x_xt, probs) - mu_mut
+#     return mu, sigma
 
 
 # TODO: small funciton to calculate padding sizes
@@ -760,3 +779,4 @@ def meshgrid(image_height, image_width):
     )
 
     coords = torch.stack((y_coords, x_coords), dim=0)
+    return coords

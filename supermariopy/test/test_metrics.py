@@ -1,8 +1,6 @@
-import pytest
 import numpy as np
-from supermariopy import numpyutils as npu
 from supermariopy import metrics
-import numpy as np
+from supermariopy import numpyutils as npu
 
 
 def test_segmentation_accuracy():
@@ -37,7 +35,7 @@ def test_segmentation_iou():
     iou = metrics.segmentation_iou(a, b, n_classes=2)
     assert np.allclose(iou, np.ones_like(iou))
 
-    """ Test 2: 
+    """ Test 2:
     a is 25% 1, 75% 0
     b is 100% 0
 
@@ -54,10 +52,10 @@ def test_segmentation_iou():
     iou = metrics.segmentation_iou(a, b, n_classes=2)
     assert np.allclose(iou, np.array([0.75, 0]))
 
-    """ Test 3: 
-    a is 50% 0, 50% 1, horizontally split 
+    """ Test 3:
+    a is 50% 0, 50% 1, horizontally split
     b is 50% 0, 50% 1, vertically split
-    
+
     Overlap is 25%
 
     IoU class 0 = IoU class 1
@@ -87,7 +85,7 @@ def test_segmentation_coverage():
     coverage = metrics.segmentation_coverage(a, b, n_classes=2)
     assert np.allclose(coverage, np.ones_like(coverage))
 
-    """ Test 2: 
+    """ Test 2:
     a is 25% 1, 75% 0
     b is 100% 0
 
@@ -101,10 +99,10 @@ def test_segmentation_coverage():
     coverage = metrics.segmentation_coverage(a, b, n_classes=2)
     assert np.allclose(coverage, np.array([0.75, 0]))
 
-    """ Test 3: 
-    a is 50% 0, 50% 1, horizontally split 
+    """ Test 3:
+    a is 50% 0, 50% 1, horizontally split
     b is 50% 0, 50% 1, vertically split
-    
+
     Overlap is 25%
 
     coverage class 0 = IoU class 1

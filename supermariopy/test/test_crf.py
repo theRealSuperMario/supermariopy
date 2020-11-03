@@ -1,5 +1,5 @@
-import pytest
 import numpy as np
+import pytest
 from matplotlib import pyplot as plt
 
 
@@ -47,4 +47,4 @@ class Test_crf:
         img = imageutils.convert_range(img, [0, 255], [0, 1])
         segmentation_algorithm = SegmentationFromKeypoints(var)
         with pytest.warns(Warning):
-            labels = segmentation_algorithm(img, keypoints)
+            segmentation_algorithm(img, keypoints)

@@ -1,5 +1,6 @@
+from typing import Iterable
+
 import torch
-from typing import *
 
 
 def convert_range(
@@ -20,7 +21,7 @@ def convert_range(
     -------
     torch.Tensor
         rescaled array
-        
+
     Examples
     --------
         t = imageutils.convert_range(np.array([-1, 1]), [-1, 1], [0, 1])

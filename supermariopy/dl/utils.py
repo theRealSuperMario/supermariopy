@@ -1,8 +1,7 @@
-from typing import *
+import enum
+
 import tensorflow as tf
 import torch
-import numpy as np
-import enum
 
 
 class CHANNELS_2D(enum.IntEnum):
